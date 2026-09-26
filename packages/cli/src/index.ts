@@ -1,17 +1,20 @@
 #!/usr/bin/env node
-import { existsSync, mkdirSync, realpathSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, realpathSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
-import { EventStore } from '@graphit/storage';
+import { EventStore, readExportFile, validateExport } from '@graphit/storage';
 import type { ProjectState } from '@graphit/core';
 import { MemoryService, entityTypeSchema, statusSchema } from '@graphit/memory';
 import { CodeGraphService } from '@graphit/codegraph';
 import { createParserRegistry, RepositoryIndexer } from '@graphit/indexer';
 import { RetrievalService, type RetrievalQuery } from '@graphit/retrieval';
 import { ContextCompiler, renderContext, serializeContext } from '@graphit/context';
-import { openGraphit, runStdio } from '@graphit/mcp';
+import { runStdio } from '@graphit/mcp';
+import { inspectProject } from './doctor.js';
 
-const usage = `Graphit P4 — provider-neutral MCP continuation
+export const GRAPHIT_VERSION = '0.1.0';
+
+const usage = `Graphit ${GRAPHIT_VERSION} — local project memory, code intelligence and MCP for AI agents
 
   graphit init [--name <name>] [--json]
   graphit status [--json]
@@ -24,6 +27,7 @@ const usage = `Graphit P4 — provider-neutral MCP continuation
   graphit memory supersede <id> --content <text> --source-event <id> [--json]
   graphit memory supersede <id> --with <replacement-id> [--source-event <id>] [--json]
   graphit memory resolve <id> [--source-event <id>] [--json]
+  graphit memory link <memory-id> --symbol <symbol-id> [--json]
   graphit handoff [--json]
   graphit index [path] [--rebuild] [--json]
   graphit code stats [--json]
@@ -32,12 +36,15 @@ const usage = `Graphit P4 — provider-neutral MCP continuation
   graphit code callees <name-or-id> [--json]
   graphit code imports <file> [--json]
   graphit code source <symbol-or-version-id> [--json]
-  graphit memory link <memory-id> --symbol <symbol-id> [--json]
   graphit retrieve "<query>" [--limit <n>] [--mode <mode>] [--json]
   graphit context "<query>" [--tokens <n>] [--mode <mode>] [--file <path>] [--symbol <id>] [--json]
   graphit mcp [--project <path-or-id>] [--provider <provider>] [--agent <agent>]
     [--model <model>] [--external-session-id <id>] [--client <client>]
   graphit mcp doctor [--project <path-or-id>] [--json]
+  graphit mcp config [--json]
+  graphit doctor [--json]
+  graphit export <output>
+  graphit import <file>
 
 Commands discover .graphit/graphit.db from the current directory upward.
 Repeat --source-event to attach multiple evidence events.
@@ -59,7 +66,15 @@ function requiredProject(store: EventStore, root: string): ProjectState {
   return state;
 }
 
+function checkNodeVersion(): void {
+  const [major, minor] = process.versions.node.split('.').map(Number);
+  if (major === undefined || major < 22 || (major === 22 && (minor ?? 0) < 13)) {
+    throw new Error(`Graphit requires Node.js >= 22.13.0 (current: ${process.version})`);
+  }
+}
+
 async function main(): Promise<void> {
+  checkNodeVersion();
   const { values, positionals } = parseArgs({
     allowPositionals: true,
     strict: true,
@@ -69,6 +84,7 @@ async function main(): Promise<void> {
       checkpoint: { type: 'string' },
       json: { type: 'boolean', default: false },
       help: { type: 'boolean', short: 'h', default: false },
+      version: { type: 'boolean', short: 'v', default: false },
       type: { type: 'string' },
       content: { type: 'string' },
       status: { type: 'string' },
@@ -84,6 +100,7 @@ async function main(): Promise<void> {
       file: { type: 'string', multiple: true }, symbol: { type: 'string', multiple: true },
     },
   });
+  if (values.version) { console.log(`graphit ${GRAPHIT_VERSION}`); return; }
   if (values.help) { console.log(usage); return; }
   const command = positionals[0];
   const route = command === 'mcp' && positionals[1] !== undefined ? `mcp ${positionals[1]}` :
@@ -91,9 +108,13 @@ async function main(): Promise<void> {
   const routes: Record<string, { positionalCount: number; options: string[] }> = {
     mcp: { positionalCount: 1, options: ['project', 'provider', 'agent', 'model', 'external-session-id', 'client'] },
     'mcp doctor': { positionalCount: 2, options: ['project'] },
+    'mcp config': { positionalCount: 2, options: [] },
     init: { positionalCount: 1, options: ['name'] }, status: { positionalCount: 1, options: [] },
     checkpoint: { positionalCount: 1, options: ['name'] }, resume: { positionalCount: 1, options: ['checkpoint'] },
     handoff: { positionalCount: 1, options: [] },
+    doctor: { positionalCount: 1, options: [] },
+    export: { positionalCount: 2, options: [] },
+    import: { positionalCount: 2, options: [] },
     'session start': { positionalCount: 2, options: ['provider', 'agent', 'model', 'external-session-id', 'client'] },
     'memory add': { positionalCount: 2, options: ['type', 'content', 'source-event'] },
     'memory list': { positionalCount: 2, options: ['type', 'status'] },
@@ -113,18 +134,81 @@ async function main(): Promise<void> {
   const definition = Object.hasOwn(routes, route) ? routes[route] : undefined;
   if (!definition || positionals.length !== definition.positionalCount) throw new Error(`Invalid command\n${usage}`);
   for (const key of Object.keys(values)) {
-    if (!['json', 'help', ...definition.options].includes(key)) throw new Error(`--${key} is not valid for ${route}`);
+    if (!['json', 'help', 'version', ...definition.options].includes(key)) throw new Error(`--${key} is not valid for ${route}`);
+  }
+  if (command === 'doctor' || route === 'mcp doctor') {
+    const isId = values.project !== undefined && /^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(values.project);
+    const root = findRoot(realpathSync(resolve(isId ? process.cwd() : values.project ?? process.cwd())));
+    const result = await inspectProject(root, isId ? values.project : undefined);
+    console.log(values.json || route === 'mcp doctor' ? JSON.stringify(result, null, 2) :
+      'Graphit Doctor\n' + Object.entries(result).map(([key, value]) => `  ${key}: ${typeof value === 'object' ? JSON.stringify(value) : String(value)}`).join('\n'));
+    if (result.errors.length) process.exitCode = 1;
+    return;
   }
   if (command === 'mcp') {
+    if (route === 'mcp config') {
+      const cwd = realpathSync(resolve(process.cwd()));
+      const config = {
+        mcpServers: {
+          graphit: {
+            command: 'graphit',
+            args: ['mcp', '--project', cwd],
+          },
+        },
+      };
+      if (values.json) {
+        console.log(JSON.stringify(config, null, 2));
+      } else {
+        console.log(`MCP client configuration for this project:
+
+Add to your MCP client config (e.g. claude_desktop_config.json):
+
+${JSON.stringify(config, null, 2)}
+
+Or with explicit provider metadata:
+
+  graphit mcp --provider <provider> --agent <agent> --model <model>
+
+The server discovers .graphit/graphit.db from the working directory.`);
+      }
+      return;
+    }
     const metadata = Object.fromEntries(Object.entries({ provider: values.provider, agent_name: values.agent,
       model_name: values.model, external_session_id: values['external-session-id'], client_name: values.client })
       .filter((entry): entry is [string, string] => entry[1] !== undefined));
     const options = { ...(values.project === undefined ? {} : { project: values.project }), metadata };
-    if (route === 'mcp doctor') {
-      const project = await openGraphit(options);
-      try { console.log(JSON.stringify(project.api.doctor(), null, 2)); }
-      finally { project.close(); }
-    } else await runStdio(options);
+    await runStdio(options);
+    return;
+  }
+  // Import does not require an existing project
+  if (command === 'import') {
+    const filePath = realpathSync(resolve(positionals[1]!));
+    const cwd = realpathSync(resolve(process.cwd()));
+    const destination = join(cwd, '.graphit');
+    if (existsSync(destination) || findRoot(cwd)) throw new Error('Import into a clean directory outside an existing Graphit project');
+    const data = await readExportFile(filePath);
+    validateExport(data); // Invalid input never creates a destination database.
+    const staging = mkdtempSync(join(cwd, '.graphit-import-'));
+    try {
+      const store = new EventStore(join(staging, 'graphit.db'));
+      let result;
+      try {
+        const memory = new MemoryService(store);
+        const graph = new CodeGraphService(store, await createParserRegistry());
+        const retrieval = new RetrievalService(store, memory, graph);
+        result = store.importArchive(data, (id) => { retrieval.rebuildSearchProjection(id); });
+      } finally { store.close(); }
+      writeFileSync(join(staging, 'project.json'), JSON.stringify({ project_id: result.project_id }), { flag: 'wx', mode: 0o600 });
+      // Publish only after every canonical and derived validation succeeds; never replace existing state.
+      if (existsSync(destination)) throw new Error('Import destination appeared during validation');
+      renameSync(staging, destination);
+      const output = { ...result, message: `Imported project ${result.manifest.project_name} (${result.project_id})` };
+      console.log(values.json ? JSON.stringify(output, null, 2) : output.message +
+        `\n  Events: ${result.events_imported}\n  Source blobs: ${result.blobs_imported}\n  Projections rebuilt`);
+    } finally {
+      // Exact generated staging directory only. The published database is never cleaned up here.
+      if (existsSync(staging) && dirname(staging) === cwd && basename(staging).startsWith('.graphit-import-')) rmSync(staging, { recursive: true, force: true });
+    }
     return;
   }
   const cwd = realpathSync(resolve(process.cwd()));
@@ -142,6 +226,16 @@ async function main(): Promise<void> {
     const registry = ['index','code','retrieve','context'].includes(command ?? '') || route === 'memory link' ? await createParserRegistry() : undefined;
     if (registry) graph.setParserRegistry(registry);
     if (command === 'index' && !store.findProject(root)) store.initializeProject(root, basename(root) || 'project');
+    // Export command
+    if (command === 'export') {
+      const state = requiredProject(store, root);
+      const outputPath = resolve(positionals[1]!);
+      const manifest = await store.exportArchive(state.project!.id, outputPath, GRAPHIT_VERSION);
+      const output = { ...manifest, message: `Exported project ${manifest.project_name} to ${outputPath}` };
+      console.log(values.json ? JSON.stringify(output, null, 2) : output.message +
+        `\n  Events: ${manifest.event_count}\n  Source blobs: ${manifest.source_blob_count}\n  Integrity: ${manifest.content_hash.slice(0, 16)}…`);
+      return;
+    }
     let output: unknown;
     let message: string;
     if (command === 'init') {

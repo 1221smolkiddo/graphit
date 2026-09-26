@@ -6,7 +6,7 @@ import { CodeGraphService, normalizePath } from '@graphit/codegraph';
 import { RetrievalService, modes, type RetrievalQuery } from '@graphit/retrieval';
 import { ContextCompiler } from '@graphit/context';
 
-export const serverVersion = '0.0.0';
+export const serverVersion = '0.1.0';
 export const sdkVersion = '2.1.0';
 const id = z.string().regex(/^[a-f0-9]{64}$/);
 const text = z.string().min(1).max(4000).refine((value) => value.trim().length > 0);

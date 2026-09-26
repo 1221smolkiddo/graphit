@@ -1,117 +1,81 @@
-# Graphit P3
+# Graphit
 
-A local, event-sourced foundation with durable project memory, provider-neutral handoff, deterministic code intelligence, and evidence-preserving context compilation. P0–P2 guarantees remain intact. See the [P1 guide](docs/P1.md), [P2 guide](docs/P2.md), and [P3 guide](docs/P3.md) for contracts, provenance, retrieval algorithms, quality gates and measured limitations.
+Graphit is local project memory and code intelligence for coding agents. It preserves immutable events and source evidence, then derives a code graph, durable memory, provider-neutral handoff and token-budgeted context. Version **0.1.0**, P5.
 
-Requires Node.js **22.13+** (Node 22.17 was used for development) and npm workspaces. Node's built-in `node:sqlite` avoids a native addon installation; this Node version emits an experimental SQLite warning on stderr.
+## Install
+
+Requires Node.js **22.13+** and a local filesystem suitable for SQLite WAL. Git is optional for commit metadata.
+
+This build is **not published**. The requested name `graphit` is already registered on npm to another maintainer; `npm install -g graphit` currently installs that other package. Until ownership/name and repository metadata are settled, install the verified local tarball:
 
 ```sh
-npm ci
-npm run build
-npm exec -- graphit --help
+npm install -g ./graphit-0.1.0.tgz
+graphit --version
+graphit --help
 ```
 
-The workspace provides the `graphit` executable. From this checkout use `npm exec -- graphit ...` or `npm run graphit -- ...`. To make the bare command available in another repository, optionally run `npm link --workspace @graphit/cli` after building.
+No private workspace packages, provider accounts or API keys are needed. From this source checkout: `npm ci`, `npm run build`, then `node packages/cli/dist/index.js --help`.
+
+## Quick start
+
+Run these in your repository:
 
 ```sh
 graphit init --name "My project"
-graphit status
-graphit checkpoint --name "P0 ready"
-graphit resume
-graphit resume --checkpoint <checkpoint-id>
 graphit index .
-graphit code stats --json
-graphit code symbol <name-or-id> --json
-graphit code source <symbol-or-version-id>
-graphit retrieve "handoff" --limit 10 --json
-graphit context "fix refresh token race" --tokens 2000 --json
-graphit memory link <memory-id> --symbol <symbol-id>
+graphit code stats
+graphit retrieve "where is login handled?" --json
+graphit context "explain this project" --tokens 1500
+graphit handoff
+graphit doctor --json
 ```
 
-Every command accepts `--json` for structured stdout; errors and Node warnings go to stderr. Commands return exit code 1 on failure; context returns 2 when its budget cannot preserve mandatory evidence. `init` creates `.graphit/graphit.db` and atomically appends project/session events. Commands discover projects upward; duplicate/nested initialization is rejected. On Windows, use `.\node_modules\.bin\graphit.cmd` or `node packages/cli/dist/index.js` if the npm PowerShell shim consumes flags.
+### Code graph
 
-`checkpoint` appends a named record of the exact state **before** its own event, including the event sequence and state hash. A checkpoint's ID is its event ID. `resume` selects the latest checkpoint unless an ID is supplied, validates and reconstructs that checkpoint's state, and appends `session.resumed` with a fresh session ID. It preserves all later history. JSON output includes both `checkpoint_state` and current `state`. `status` verifies and replays history without appending an event.
+Tree-sitter indexes TypeScript, TSX, JavaScript, JSX and Python incrementally. Symbol identities, relationships and exact byte spans refer to immutable SHA-256 source blobs. `graphit code symbol <name>` finds symbols; `code callers`, `code callees` and `code source <id>` inspect preserved evidence rather than reading arbitrary live files.
 
-## Architecture
+### Project memory and handoff
 
-- `@graphit/core`: shared event/project/session/checkpoint types, strict runtime validation, canonical JSON, SHA-256 identities, integrity checks and pure state reconstruction.
-- `@graphit/storage`: SQLite migrations, append-only event persistence, transactional operations and disposable projections.
-- `@graphit/memory`: explicit memory promotion, provenance validation, temporal replay, relationships and handoff JSON.
-- `@graphit/codegraph`: parser-independent IR and graph contracts, deterministic identities, conservative edge resolution, projections, replay and queries.
-- `@graphit/indexer`: safe scanning, byte hashing, pinned Tree-sitter adapters and incremental indexing.
-- `@graphit/retrieval`: exact/FTS candidate channels, RRF, bounded Personalized PageRank, impact/continue modes and explicit memory/code links.
-- `@graphit/context`: provenance-bearing evidence, deterministic token estimates, MMR-guided packing and provider-neutral JSON.
-- `@graphit/cli`: P0–P3 commands; no parsing or retrieval algorithms.
+Explicitly record evidence with MCP `graphit_record_event`, then promote a goal, task, decision, constraint, blocker, question, action, result or artifact with `graphit_add_memory`. Every memory retains source event IDs. CLI `graphit memory add --type task --content "Verify login" --source-event <id>` uses the same promotion API. Supersession preserves history.
 
-Build order is core → storage → memory → codegraph → indexer → retrieval → context → CLI. The parser-independent IR lives with codegraph contracts to avoid a dependency cycle; indexer produces it. Tests exercise built workspace exports and the executable.
+`graphit handoff` returns current memory and provenance. A different provider can start later and continue using those same events; no provider-specific chat schema is canonical.
 
-## Persistence and invariants
+### Token-aware context
 
-| Table | Purpose / columns |
-| --- | --- |
-| `schema_migrations` | Migration `version`, `name`, SHA-256 `checksum`, `applied_at` |
-| `events` | Immutable `id`, `project_id`, `session_id`, `sequence`, `event_type`, canonical JSON `payload`, `created_at`, `content_hash` |
-| `projects` | Derived `id`, `name`, `root_path`, `created_at`, `active_session_id`, `last_sequence` |
-| `sessions` | Derived identity/time plus optional provider, agent, model, external-session and client metadata |
-| `checkpoints` | Derived `id`, `project_id`, `session_id`, `name`, `through_sequence`, `state_hash`, `created_at` |
-| `memory_entities` | Derived typed content, lifecycle status, validity interval, provenance and metadata |
-| `memory_relations` | Derived typed relationships, validity interval, provenance and metadata |
-| `source_blobs` | Immutable SHA-256 `content_hash`, `byte_length`, exact `content BLOB`, `created_at` |
-| `code_files`, `code_symbols`, `code_edges`, `code_imports` | Disposable current code graph and cached extraction, scoped by project |
-| `code_index_runs`, `code_projection_state` | Disposable index-run history, projection cursor and graph digest |
-| `retrieval_memory_fts`, `retrieval_code_fts`, `retrieval_projection_state` | Disposable FTS5 search indexes and document digest, added by migration 004 |
+Exact matching, FTS5/BM25, reciprocal-rank fusion and bounded Personalized PageRank retrieve evidence. Deterministic MMR reduces duplication and packs a canonical packet into the requested estimated-token budget. Missing required evidence is explicit; CLI context exits **2** when the budget is insufficient. The estimator is UTF-8 bytes/4, not a model-specific tokenizer.
 
-P0 tables and immutability/sequence triggers live in the unchanged `001_initial.sql`; P1 is added by `002_memory.sql`, and P2 by `003_code_intelligence.sql`. Only the migration ledger is bootstrapped by the migration runner. Applied migrations are checksum-verified, ordered, transactional and forward-only. An unknown newer schema or changed migration fails closed. Add a new numbered migration and register it rather than modifying an applied migration.
+The refresh-work fixture measured **27,652 candidate tokens → 1,960 selected**, a **92.91% reduction**, preserving **6/6 required evidence items** at a 2,000-token budget. Small run-to-run differences arise from identities/paths and packing tie-breaks; these are fixture results, not universal performance guarantees.
 
-All store connections require WAL and enable foreign keys, recursive triggers, `synchronous=FULL`, and a 5-second busy timeout. Every write runs inside `BEGIN IMMEDIATE` / `COMMIT`; failure rolls back events **and** projections. Sequences are allocated while holding the write lock, start at 1 per project, and are contiguous. A unique `(project_id, sequence)` constraint and insert trigger enforce ordering. Database triggers reject event updates, deletes and replacement inserts. The app never repairs or removes source events.
+### MCP
 
-`created_at` uses canonical UTC ISO timestamps with milliseconds. Project and session IDs are UUIDs. `content_hash` is SHA-256 of canonical JSON for the unsigned envelope (`project_id`, `session_id`, `sequence`, `event_type`, `payload`, `created_at`). Object keys are sorted recursively and array order is preserved. Event `id` is SHA-256 of `graphit:event:v1:` followed by the content hash. Identical envelopes produce identical IDs; a new timestamp or sequence produces a distinct event. This is deterministic identity, not automatic retry deduplication.
+`graphit mcp --project <project-directory>` serves 13 tools and three resources over stdio. `graphit mcp config --json` prints a local client configuration; `graphit mcp doctor` checks readiness. Use the direct binary or Node entrypoint in MCP configuration, not an npm script that prints banners to stdout. See [MCP setup](docs/MCP.md).
 
-Payload schemas reject unknown fields/types and non-JSON values. Replay verifies hashes, IDs, timestamps, contiguous sequences, project/session relationships and checkpoint state hashes before returning state. Supported payloads:
+### Privacy and data preservation
 
-| Event | Payload |
-| --- | --- |
-| `project.created` | `{ name, root_path }` |
-| `session.started` | Optional provider-neutral session metadata (`{}` still valid) |
-| `checkpoint.created` | `{ name, through_sequence, state_hash }` |
-| `session.resumed` | `{ checkpoint_id }`, optionally session metadata |
+Graphit does **not** automatically scrape full private Codex/Claude chats. It captures data explicitly recorded through Graphit CLI/MCP, plus files you deliberately index. It does not call LLMs or cloud services. `.graphit/` contains private project evidence and should not be committed.
 
-Source events have no foreign keys into disposable projection tables. Canonical state is the ordered event stream plus P2's immutable source blobs. `EventStore.getState()` and `listProjects()` replay events; they do not trust cached rows. `EventStore.rebuildProjections()` atomically rebuilds every project/session/checkpoint row using only those events, plus registered extension projections. Code projection rebuilds reparse preserved bytes, never current working-tree files. Checkpoints store no authoritative opaque snapshots: their exact historical state is reproducible by replaying through `through_sequence`.
+Source events and blobs are append-only; memory, code and search indexes are reconstructable. `graphit export snapshot.graphit` makes a checksummed archive; `graphit import snapshot.graphit` imports into a clean directory and rebuilds all derived indexes. Archives are not encrypted and can contain code, recorded secrets and historical absolute paths. See [data preservation](docs/DATA_PRESERVATION.md) and [portability](docs/PORTABILITY.md).
 
-```ts
-import { EventStore } from '@graphit/storage';
-import { MemoryService } from '@graphit/memory';
-import { CodeGraphService } from '@graphit/codegraph';
-import { createParserRegistry } from '@graphit/indexer';
+## Documentation
 
-const store = new EventStore('/absolute/path/to/.graphit/graphit.db');
-new MemoryService(store); // Register the P1 memory schemas and projector.
-new CodeGraphService(store, await createParserRegistry()); // Register P2 replay and pinned adapters.
-try {
-  store.rebuildProjections();
-} finally {
-  store.close();
-}
-```
+- [Getting started](docs/GETTING_STARTED.md) and [CLI reference](docs/CLI.md)
+- [Architecture](docs/ARCHITECTURE.md), [memory](docs/MEMORY.md), [retrieval](docs/RETRIEVAL.md)
+- [MCP](docs/MCP.md), [portability](docs/PORTABILITY.md), [data preservation](docs/DATA_PRESERVATION.md)
 
-## Verification
+## Verification and limitations
 
 ```sh
 npm test
 npm run typecheck
 npm run lint
+npm run build
+npm pack --dry-run
+npm pack
+npm run verify:packed -- ./graphit-0.1.0.tgz
+npm run mcp:smoke
+node examples/context-demo.mjs
 ```
 
-Vitest covers canonical identity, invalid inputs, integrity failures, replay, migrations, WAL, immutable rows, per-project sequence allocation, multi-process contention, atomic initialization, rollback after projection failure, checkpoint selection, resume, projection deletion/rebuild, and executable CLI flows. `npm test` builds first; typecheck includes source, tests and Vitest configuration.
+The packed-install check runs outside the workspace and exercises real stdio clients, full provider restart, preserved evidence and export/import. Windows/Node 22.17 is the tested release environment; other supported platforms still need CI coverage. SQLite emits an experimental warning on that Node version.
 
-## Limits and next step
-
-- Full synchronous replay and projection rewriting favor correctness over large-history performance; checkpoints are logical bookmarks, not replay accelerators.
-- One local filesystem project per CLI database; the storage API can manage multiple projects. Project paths are stored as absolute paths; moving a project needs an explicit future relocation feature.
-- Checkpoints do not capture files, Git commits or application process state. Resume preserves its P0 behavior; `graphit handoff --json` provides durable memory and evidence for a new agent.
-- There is no session-close lifecycle, remote sync, general event retry deduplication, database encryption, or backup/restore command. Explicit memory promotion is retry-idempotent. Hash checks detect mismatches but are not signatures against a party with unrestricted database access.
-- `node:sqlite` is experimental in the tested Node version. Five-second lock contention is surfaced as an error; no unbounded retry loop is used. Use a local filesystem suitable for SQLite WAL.
-- P2 supports TypeScript, TSX, JavaScript, JSX and Python through pinned Tree-sitter WASM. Complex scopes, dynamic receivers and ambiguous imports remain unresolved; see the P2 guide.
-- P3 adds lexical/graph ranking and estimated-token budgeting, not semantic understanding or guaranteed provider token counts. Inadequate budgets and missing continuation state are explicit.
-- No embeddings, LLM calls, MCP, VS Code integration, automatic conversation extraction or cloud services are included.
-
-Try `node examples/context-demo.mjs` for the isolated P3 quality/budget demonstration and `node examples/context-self-benchmark.mjs` after indexing this checkout for performance metrics. Exact next step: review the P3 quality gates and approve a separate P4 integration/acceptance specification. No P4, MCP or VS Code work has started.
+Synchronous replay favors correctness over very large histories. Dynamic calls and ambiguous imports may remain unresolved. Hashes detect corruption, not malicious re-signing by someone with full filesystem access. Imports are limited to 256 MiB uncompressed; no archive merge or encryption. No VS Code extension, UI, website, cloud sync, embeddings, LLM summaries or private transcript scraping. No P6 work is included.

@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
-import { resolve } from 'node:path';
+import { resolve, dirname, join } from 'node:path';
+import { existsSync, readFileSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
 import {
   applyEvent, canonicalJson, contentHash, createEvent, reconstructState, verifyEvent,
@@ -13,6 +14,8 @@ import { ensureSearchProjection, searchProjection, type SearchDocuments, type Se
 export type { SearchDocuments, SearchHit } from './search.js';
 
 export { migrate, migrations, type Migration } from './migrations.js';
+import { exportProject, importProject } from './portable.js';
+export { exportProject, importProject, readExportFile, validateExport } from './portable.js';
 
 export interface StoreOptions {
   clock?: () => string;
@@ -48,11 +51,13 @@ export interface ResumeResult {
 export class EventStore {
   readonly #database: DatabaseSync;
   readonly #clock: () => string;
+  readonly #path: string;
   readonly #projections = new Map<string, EventProjection>();
   #transactionDepth = 0;
   readonly #writerSessions = new Map<string, string>();
 
   constructor(path: string, options: StoreOptions = {}) {
+    this.#path = resolve(path);
     this.#clock = options.clock ?? (() => new Date().toISOString());
     this.#database = new DatabaseSync(path);
     try {
@@ -65,6 +70,24 @@ export class EventStore {
       this.#database.close();
       throw error;
     }
+  }
+
+  exportArchive(projectId: string, outputPath: string, version: string) {
+    return exportProject(this.#database, projectId, outputPath, version);
+  }
+
+  importArchive(data: string, rebuildSearch: (projectId: string) => unknown) {
+    return this.#transaction(() => {
+      const result = importProject(this.#database, data);
+      for (const event of this.readEvents(result.project_id)) {
+        if ((event.event_type.startsWith('memory.') || event.event_type.startsWith('code.')) &&
+          ![...this.#projections.values()].some((projection) => projection.eventTypes.includes(event.event_type))) throw new Error('Import requires the corresponding projection handler');
+      }
+      this.rebuildProjections();
+      const rebuilt = rebuildSearch(result.project_id);
+      if (rebuilt instanceof Promise) throw new Error('Import rebuild must be synchronous');
+      return result;
+    });
   }
 
   close(): void {
@@ -198,6 +221,13 @@ export class EventStore {
 
   findProject(rootPath: string): ProjectState | undefined {
     const absolutePath = resolve(rootPath);
+    // Machine-local attachment never changes canonical project identity or historical paths.
+    const binding = join(absolutePath, '.graphit', 'project.json');
+    if (dirname(this.#path) === join(absolutePath, '.graphit') && existsSync(binding)) {
+      const value: unknown = JSON.parse(readFileSync(binding, 'utf8'));
+      if (!value || typeof value !== 'object' || Object.keys(value).join() !== 'project_id' || !('project_id' in value) || typeof value.project_id !== 'string') throw new Error('Invalid local project binding');
+      return this.getState(value.project_id);
+    }
     return this.listProjects().find((state) => state.project?.root_path === absolutePath);
   }
 

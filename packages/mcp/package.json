@@ -1,14 +1,29 @@
 {
   "name": "@graphit/mcp",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
-  "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },
-  "scripts": { "build": "tsc -p tsconfig.json" },
-  "dependencies": {
-    "@graphit/core": "0.0.0", "@graphit/storage": "0.0.0", "@graphit/memory": "0.0.0",
-    "@graphit/codegraph": "0.0.0", "@graphit/indexer": "0.0.0", "@graphit/retrieval": "0.0.0", "@graphit/context": "0.0.0",
-    "@modelcontextprotocol/server": "2.1.0", "zod": "^4.2.0"
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
   },
-  "devDependencies": { "@modelcontextprotocol/client": "2.1.0" }
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@graphit/core": "0.1.0",
+    "@graphit/storage": "0.1.0",
+    "@graphit/memory": "0.1.0",
+    "@graphit/codegraph": "0.1.0",
+    "@graphit/indexer": "0.1.0",
+    "@graphit/retrieval": "0.1.0",
+    "@graphit/context": "0.1.0",
+    "@modelcontextprotocol/server": "2.1.0",
+    "zod": "^4.2.0"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/client": "2.1.0"
+  }
 }

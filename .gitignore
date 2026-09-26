@@ -3,3 +3,4 @@ dist/
 coverage/
 .graphit/
 *.tsbuildinfo
+*.tgz

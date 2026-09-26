@@ -1,6 +1,6 @@
 {
   "name": "@graphit/retrieval",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "exports": {
@@ -13,10 +13,10 @@
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@graphit/core": "0.0.0",
-    "@graphit/storage": "0.0.0",
-    "@graphit/memory": "0.0.0",
-    "@graphit/codegraph": "0.0.0",
+    "@graphit/core": "0.1.0",
+    "@graphit/storage": "0.1.0",
+    "@graphit/memory": "0.1.0",
+    "@graphit/codegraph": "0.1.0",
     "zod": "^3.24.2"
   }
 }

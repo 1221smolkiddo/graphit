@@ -31,7 +31,8 @@ export class RepositoryIndexer {
   index(projectId: string, rootPath: string, options: IndexOptions = {}): IndexRun {
     const started = performance.now();
     const root = realpathSync(resolve(rootPath));
-    if (this.store.getState(projectId).project!.root_path !== root) throw new Error('Index path must be the project root, not a subtree or another project');
+    if (this.store.findProject(root)?.project?.id !== projectId) throw new Error('Index path must be the project root, not a subtree or another project');
+    const canonicalRoot = this.store.getState(projectId).project!.root_path;
     const unfinished = this.graph.getRuns(projectId).find((run) => run.status === 'running');
     if (unfinished) {
       if (!options.rebuild) throw new Error('An unfinished index run exists; --rebuild explicitly recovers it');
@@ -46,7 +47,7 @@ export class RepositoryIndexer {
     const previous = options.rebuild ? this.graph.rebuildCodeProjection(projectId) : this.graph.getGraph(projectId);
     const index_run_id = randomUUID();
     this.store.withProjectTransaction(projectId, (tx) => tx.append({ event_type: 'code.index.started', payload: {
-      index_run_id, root_path: root, started_at: new Date().toISOString(),
+      index_run_id, root_path: canonicalRoot, started_at: new Date().toISOString(),
     } }));
     const metrics = zeroMetrics(); const errors: { path: string; message: string }[] = [];
     const changed: { bytes: Uint8Array; observation: Omit<FileObservation, 'event_id' | 'sequence'>; extraction?: ExtractedFile }[] = [];
