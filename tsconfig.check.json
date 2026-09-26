@@ -7,7 +7,9 @@
       "@graphit/storage": ["./packages/storage/src/index.ts"],
       "@graphit/memory": ["./packages/memory/src/index.ts"],
       "@graphit/codegraph": ["./packages/codegraph/src/index.ts"],
-      "@graphit/indexer": ["./packages/indexer/src/index.ts"]
+      "@graphit/indexer": ["./packages/indexer/src/index.ts"],
+      "@graphit/retrieval": ["./packages/retrieval/src/index.ts"],
+      "@graphit/context": ["./packages/context/src/index.ts"]
     }
   },
   "include": ["packages/**/*.ts", "vitest.config.ts"],

@@ -14,6 +14,7 @@ export const migrations: readonly Migration[] = [
   { version: 1, name: 'initial', sql: readFileSync(new URL('./migrations/001_initial.sql', import.meta.url), 'utf8') },
   { version: 2, name: 'memory', sql: readFileSync(new URL('./migrations/002_memory.sql', import.meta.url), 'utf8'), editsEventTypeConstraint: true },
   { version: 3, name: 'code_intelligence', sql: readFileSync(new URL('./migrations/003_code_intelligence.sql', import.meta.url), 'utf8'), editsEventTypeConstraint: true, requiredEventType: 'code.index.failed' },
+  { version: 4, name: 'retrieval', sql: readFileSync(new URL('./migrations/004_retrieval.sql', import.meta.url), 'utf8') },
 ];
 
 /** The ledger is the only bootstrap table; domain DDL lives in numbered migrations. */

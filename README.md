@@ -1,6 +1,6 @@
-# Graphit P2
+# Graphit P3
 
-A local, event-sourced foundation with durable project memory, provider-neutral agent handoff, and deterministic repository code intelligence. P0/P1 guarantees remain intact. See the [P1 guide](docs/P1.md) for memory and handoff, and the [P2 guide](docs/P2.md) for immutable source evidence, graph identities, parsing, resolution, rebuilds and limitations. Context compilation and retrieval/ranking are not implemented.
+A local, event-sourced foundation with durable project memory, provider-neutral handoff, deterministic code intelligence, and evidence-preserving context compilation. P0–P2 guarantees remain intact. See the [P1 guide](docs/P1.md), [P2 guide](docs/P2.md), and [P3 guide](docs/P3.md) for contracts, provenance, retrieval algorithms, quality gates and measured limitations.
 
 Requires Node.js **22.13+** (Node 22.17 was used for development) and npm workspaces. Node's built-in `node:sqlite` avoids a native addon installation; this Node version emits an experimental SQLite warning on stderr.
 
@@ -22,9 +22,12 @@ graphit index .
 graphit code stats --json
 graphit code symbol <name-or-id> --json
 graphit code source <symbol-or-version-id>
+graphit retrieve "handoff" --limit 10 --json
+graphit context "fix refresh token race" --tokens 2000 --json
+graphit memory link <memory-id> --symbol <symbol-id>
 ```
 
-Every command accepts `--json` for structured stdout; errors and Node warnings go to stderr. Commands return exit code 1 on failure. `init` creates `.graphit/graphit.db` in the current directory and atomically appends `project.created` and `session.started`. The other commands discover that database by walking upward, so they work from subdirectories. Duplicate and nested initialization are rejected.
+Every command accepts `--json` for structured stdout; errors and Node warnings go to stderr. Commands return exit code 1 on failure; context returns 2 when its budget cannot preserve mandatory evidence. `init` creates `.graphit/graphit.db` and atomically appends project/session events. Commands discover projects upward; duplicate/nested initialization is rejected. On Windows, use `.\node_modules\.bin\graphit.cmd` or `node packages/cli/dist/index.js` if the npm PowerShell shim consumes flags.
 
 `checkpoint` appends a named record of the exact state **before** its own event, including the event sequence and state hash. A checkpoint's ID is its event ID. `resume` selects the latest checkpoint unless an ID is supplied, validates and reconstructs that checkpoint's state, and appends `session.resumed` with a fresh session ID. It preserves all later history. JSON output includes both `checkpoint_state` and current `state`. `status` verifies and replays history without appending an event.
 
@@ -35,9 +38,11 @@ Every command accepts `--json` for structured stdout; errors and Node warnings g
 - `@graphit/memory`: explicit memory promotion, provenance validation, temporal replay, relationships and handoff JSON.
 - `@graphit/codegraph`: parser-independent IR and graph contracts, deterministic identities, conservative edge resolution, projections, replay and queries.
 - `@graphit/indexer`: safe scanning, byte hashing, pinned Tree-sitter adapters and incremental indexing.
-- `@graphit/cli`: P0/P1 commands plus index and code inspection commands; no parsing logic.
+- `@graphit/retrieval`: exact/FTS candidate channels, RRF, bounded Personalized PageRank, impact/continue modes and explicit memory/code links.
+- `@graphit/context`: provenance-bearing evidence, deterministic token estimates, MMR-guided packing and provider-neutral JSON.
+- `@graphit/cli`: P0–P3 commands; no parsing or retrieval algorithms.
 
-Build order is core → storage → memory → codegraph → indexer → CLI. The parser-independent IR lives with codegraph contracts to avoid a dependency cycle; indexer produces it. Tests exercise built workspace exports and the executable.
+Build order is core → storage → memory → codegraph → indexer → retrieval → context → CLI. The parser-independent IR lives with codegraph contracts to avoid a dependency cycle; indexer produces it. Tests exercise built workspace exports and the executable.
 
 ## Persistence and invariants
 
@@ -53,6 +58,7 @@ Build order is core → storage → memory → codegraph → indexer → CLI. Th
 | `source_blobs` | Immutable SHA-256 `content_hash`, `byte_length`, exact `content BLOB`, `created_at` |
 | `code_files`, `code_symbols`, `code_edges`, `code_imports` | Disposable current code graph and cached extraction, scoped by project |
 | `code_index_runs`, `code_projection_state` | Disposable index-run history, projection cursor and graph digest |
+| `retrieval_memory_fts`, `retrieval_code_fts`, `retrieval_projection_state` | Disposable FTS5 search indexes and document digest, added by migration 004 |
 
 P0 tables and immutability/sequence triggers live in the unchanged `001_initial.sql`; P1 is added by `002_memory.sql`, and P2 by `003_code_intelligence.sql`. Only the migration ledger is bootstrapped by the migration runner. Applied migrations are checksum-verified, ordered, transactional and forward-only. An unknown newer schema or changed migration fails closed. Add a new numbered migration and register it rather than modifying an applied migration.
 
@@ -105,6 +111,7 @@ Vitest covers canonical identity, invalid inputs, integrity failures, replay, mi
 - There is no session-close lifecycle, remote sync, general event retry deduplication, database encryption, or backup/restore command. Explicit memory promotion is retry-idempotent. Hash checks detect mismatches but are not signatures against a party with unrestricted database access.
 - `node:sqlite` is experimental in the tested Node version. Five-second lock contention is surfaced as an error; no unbounded retry loop is used. Use a local filesystem suitable for SQLite WAL.
 - P2 supports TypeScript, TSX, JavaScript, JSX and Python through pinned Tree-sitter WASM. Complex scopes, dynamic receivers and ambiguous imports remain unresolved; see the P2 guide.
-- No embeddings, graph ranking, MCP, VS Code integration, automatic conversation extraction or token budgeting is included.
+- P3 adds lexical/graph ranking and estimated-token budgeting, not semantic understanding or guaranteed provider token counts. Inadequate budgets and missing continuation state are explicit.
+- No embeddings, LLM calls, MCP, VS Code integration, automatic conversation extraction or cloud services are included.
 
-Try `node examples/handoff-demo.mjs` for a disposable P1 demonstration. Exact next phase: P3 deterministic evidence retrieval/context compilation, after an explicit specification and approval. P3 has not started.
+Try `node examples/context-demo.mjs` for the isolated P3 quality/budget demonstration and `node examples/context-self-benchmark.mjs` after indexing this checkout for performance metrics. Exact next step: review the P3 quality gates and approve a separate P4 integration/acceptance specification. No P4, MCP or VS Code work has started.

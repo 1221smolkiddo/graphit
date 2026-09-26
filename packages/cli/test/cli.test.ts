@@ -7,6 +7,8 @@ import { afterEach, describe, expect, it } from 'vitest';
 import type { Checkpoint, ProjectState } from '@graphit/core';
 import type { ResumeResult } from '@graphit/storage';
 import type { CodeSymbol, IndexRun } from '@graphit/codegraph';
+import type { ContextPacket } from '@graphit/context';
+import type { RetrievalResult } from '@graphit/retrieval';
 
 const executable = fileURLToPath(new URL('../dist/index.js', import.meta.url));
 const directories: string[] = [];
@@ -32,6 +34,30 @@ afterEach(() => {
 });
 
 describe('graphit CLI', () => {
+  it('retrieves, links memory and compiles canonical context across separate CLI processes', () => {
+    const root = temporary(); writeFileSync(join(root,'session.ts'),'export function refreshSession(){ return 1; }');
+    json(root,'index','.');
+    const symbol = json<{candidates:CodeSymbol[]}>(root,'code','symbol','refreshSession').candidates[0]!;
+    const checkpoint = json<Checkpoint>(root,'checkpoint');
+    const memory = json<{id:string}>(root,'memory','add','--type','task','--content','Continue refresh rotation','--source-event',checkpoint.id);
+    const linked = json<{artifact_id:string;relation_id:string}>(root,'memory','link',memory.id,'--symbol',symbol.logical_symbol_id);
+    expect(linked.relation_id).toMatch(/^[a-f0-9]{64}$/);
+    const result = json<RetrievalResult>(root,'retrieve','refreshSession','--limit','3','--mode','code');
+    expect(result.candidates.length).toBeLessThanOrEqual(3);
+    expect(result.candidates[0]!.symbol?.logical_symbol_id).toBe(symbol.logical_symbol_id);
+    const packet = json<ContextPacket>(root,'context','continue refresh rotation','--tokens','2000','--mode','continue','--file','session.ts','--symbol',symbol.logical_symbol_id);
+    expect(packet.budget.estimated_tokens).toBeLessThanOrEqual(2000);
+    expect(packet.evidence.some((unit)=>unit.memory_ids?.includes(memory.id))).toBe(true);
+    expect(packet.evidence.some((unit)=>unit.source_blob_hash===symbol.span.contentHash)).toBe(true);
+    const tiny = run(root,'context','refreshSession','--tokens','1','--json');
+    expect(tiny.status).toBe(2); expect(JSON.parse(String(tiny.stdout)).budget.budget_insufficient).toBe(true);
+    expect(String(run(root,'retrieve','refreshSession').stdout)).toContain('refreshSession');
+    expect(String(run(root,'context','refreshSession','--tokens','4000').stdout)).toContain('Provenance:');
+    for(const args of [['retrieve','x','--limit','0'],['context','x','--tokens','NaN'],['context','x','--mode','unknown'],['retrieve',' ']]) {
+      expect(run(root,...args).status).toBe(1);
+    }
+  },30000);
+
   it('indexes a non-Git repository, disambiguates names and serves preserved source across processes', () => {
     const root = temporary();
     writeFileSync(join(root, 'one.ts'), 'export function value(){ return 1; }\nexport function caller(){ return value(); }');

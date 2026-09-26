@@ -7,8 +7,10 @@ import type { ProjectState } from '@graphit/core';
 import { MemoryService, entityTypeSchema, statusSchema } from '@graphit/memory';
 import { CodeGraphService } from '@graphit/codegraph';
 import { createParserRegistry, RepositoryIndexer } from '@graphit/indexer';
+import { RetrievalService, type RetrievalQuery } from '@graphit/retrieval';
+import { ContextCompiler, renderContext, serializeContext } from '@graphit/context';
 
-const usage = `Graphit P2 — evidence-preserving code intelligence
+const usage = `Graphit P3 — evidence retrieval and context compilation
 
   graphit init [--name <name>] [--json]
   graphit status [--json]
@@ -29,6 +31,9 @@ const usage = `Graphit P2 — evidence-preserving code intelligence
   graphit code callees <name-or-id> [--json]
   graphit code imports <file> [--json]
   graphit code source <symbol-or-version-id> [--json]
+  graphit memory link <memory-id> --symbol <symbol-id> [--json]
+  graphit retrieve "<query>" [--limit <n>] [--mode <mode>] [--json]
+  graphit context "<query>" [--tokens <n>] [--mode <mode>] [--file <path>] [--symbol <id>] [--json]
 
 Commands discover .graphit/graphit.db from the current directory upward.
 Repeat --source-event to attach multiple evidence events.
@@ -70,6 +75,8 @@ async function main(): Promise<void> {
       'external-session-id': { type: 'string' },
       client: { type: 'string' },
       rebuild: { type: 'boolean' },
+      tokens: { type: 'string' }, limit: { type: 'string' }, mode: { type: 'string' },
+      file: { type: 'string', multiple: true }, symbol: { type: 'string', multiple: true },
     },
   });
   if (values.help) { console.log(usage); return; }
@@ -84,6 +91,9 @@ async function main(): Promise<void> {
     'memory list': { positionalCount: 2, options: ['type', 'status'] },
     'memory supersede': { positionalCount: 3, options: ['content', 'with', 'source-event'] },
     'memory resolve': { positionalCount: 3, options: ['source-event'] },
+    'memory link': { positionalCount: 3, options: ['symbol'] },
+    retrieve: { positionalCount: 2, options: ['limit', 'mode'] },
+    context: { positionalCount: 2, options: ['tokens', 'mode', 'file', 'symbol'] },
     index: { positionalCount: positionals.length === 1 ? 1 : 2, options: ['rebuild'] },
     'code stats': { positionalCount: 2, options: [] },
     'code symbol': { positionalCount: 3, options: [] },
@@ -109,7 +119,7 @@ async function main(): Promise<void> {
   try {
     const memory = new MemoryService(store);
     const graph = new CodeGraphService(store);
-    const registry = command === 'index' || command === 'code' ? await createParserRegistry() : undefined;
+    const registry = ['index','code','retrieve','context'].includes(command ?? '') || route === 'memory link' ? await createParserRegistry() : undefined;
     if (registry) graph.setParserRegistry(registry);
     if (command === 'index' && !store.findProject(root)) store.initializeProject(root, basename(root) || 'project');
     let output: unknown;
@@ -122,6 +132,32 @@ async function main(): Promise<void> {
       const state = requiredProject(store, root);
       const projectId = state.project!.id;
       switch (route) {
+        case 'memory link': {
+          if (values.symbol?.length !== 1) throw new Error('Supply exactly one --symbol');
+          output = new RetrievalService(store,memory,graph).linkMemoryToSymbol(projectId,positionals[2]!,values.symbol[0]!);
+          message = JSON.stringify(output,null,2); break;
+        }
+        case 'retrieve':
+        case 'context': {
+          const retrieval = new RetrievalService(store,memory,graph);
+          const input: RetrievalQuery = {text:positionals[1]!,projectId,
+            ...(values.mode === undefined ? {} : {mode:values.mode as RetrievalQuery['mode']}),
+            ...(values.tokens === undefined ? {} : {tokenBudget:Number(values.tokens)}),
+            ...(values.file === undefined ? {} : {currentFiles:values.file}),
+            ...(values.symbol === undefined ? {} : {seedSymbolIds:values.symbol})};
+          if (route === 'retrieve') {
+            const result = retrieval.retrieve(input,values.limit === undefined ? {} : {limit:Number(values.limit)});
+            output = result; message = result.candidates.length ? result.candidates.map((item) =>
+              `${item.id} ${item.current ? 'CURRENT' : 'HISTORICAL'} RRF=${item.rrf_score.toFixed(6)} ${item.symbol ? item.symbol.qualifiedName+' '+item.symbol.path : item.memory!.content}`).join('\n') : 'No matching evidence.';
+          } else {
+            const packet = new ContextCompiler(retrieval).compile(input);
+            // JSON is canonical; the text renderer is a view of the same packet.
+            console.log(values.json ? serializeContext(packet) : renderContext(packet));
+            if (packet.budget.budget_insufficient) process.exitCode = 2;
+            return;
+          }
+          break;
+        }
         case 'status':
           output = state;
           message = `Project: ${state.project!.name} (${projectId})\nEvents: ${state.last_sequence}\nActive session: ${state.active_session_id ?? 'none'}\nSessions: ${state.sessions.length}\nCheckpoints: ${state.checkpoints.length}\nLatest checkpoint: ${state.checkpoints.at(-1)?.id ?? 'none'}`;

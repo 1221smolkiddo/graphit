@@ -9,6 +9,8 @@ import {
 import { migrate } from './migrations.js';
 import { insertSourceBlob, readSourceBlob, type SourceBlob } from './blobs.js';
 export { readSourceBlob, type SourceBlob } from './blobs.js';
+import { ensureSearchProjection, searchProjection, type SearchDocuments, type SearchHit } from './search.js';
+export type { SearchDocuments, SearchHit } from './search.js';
 
 export { migrate, migrations, type Migration } from './migrations.js';
 
@@ -26,6 +28,8 @@ export interface EventProjection {
 
 export type ProjectAppendInput = EventData & { session_id?: string; created_at?: string };
 export interface ProjectTransaction {
+  ensureSearch(documents: SearchDocuments, force?: boolean): boolean;
+  search(kind: 'memory' | 'code', terms: readonly string[], limit: number): SearchHit[];
   readEvents(): GraphEvent[];
   getState(): ProjectState;
   append(input: ProjectAppendInput): GraphEvent;
@@ -92,6 +96,8 @@ export class EventStore {
       let active = true;
       const ensureActive = (): void => { if (!active) throw new Error('Transaction is no longer active'); };
       const transaction: ProjectTransaction = {
+        ensureSearch: (documents, force = false) => { ensureActive(); return ensureSearchProjection(this.#database, projectId, documents, force); },
+        search: (kind, terms, limit) => { ensureActive(); return searchProjection(this.#database, projectId, kind, terms, limit); },
         putSourceBlob: (bytes) => { ensureActive(); return insertSourceBlob(this.#database, bytes, this.#clock()); },
         readProjection: (name) => {
           ensureActive();

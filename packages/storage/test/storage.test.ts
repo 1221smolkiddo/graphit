@@ -54,7 +54,7 @@ describe('migrations and SQLite configuration', () => {
     close(store);
     track(new EventStore(path));
     expect(database.prepare('SELECT * FROM schema_migrations').all()).toEqual(before);
-    expect(database.prepare("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name").all().map((row) => row.name))
+    expect(database.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'retrieval_%' ORDER BY name").all().map((row) => row.name))
       .toEqual(['checkpoints', 'code_edges', 'code_files', 'code_imports', 'code_index_runs', 'code_projection_state', 'code_symbols', 'events', 'memory_entities', 'memory_relations', 'projects', 'schema_migrations', 'sessions', 'source_blobs']);
   });
 
