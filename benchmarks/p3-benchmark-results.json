@@ -1,0 +1,1170 @@
+{
+  "report_schema_version": 1,
+  "phase": "P3",
+  "title": "Graphit P3 retrieval and context compiler benchmark evidence",
+  "measured_at_utc": "2026-09-26T18:06:08.875Z",
+  "completed_at_utc": "2026-09-26T18:06:24.724Z",
+  "status": "passed",
+  "revision": {
+    "commit": "a714a3305523ebd59591dff21fe23fbac9ae4308",
+    "working_tree_clean_before_measurement": true,
+    "note": "P3 benchmarks rerun on the current P6B commit; not measurements captured at the original P3 release."
+  },
+  "environment": {
+    "node": "v22.17.0",
+    "platform": "win32",
+    "architecture": "x64",
+    "os_release": "10.0.26200",
+    "cpu": "11th Gen Intel(R) Core(TM) i5-11320H @ 3.20GHz",
+    "sqlite_driver": "better-sqlite3",
+    "sqlite_driver_version": "13.0.3"
+  },
+  "methodology": {
+    "fixture": "fixtures/repos/auth-retrieval",
+    "benchmark": "examples/context-demo.mjs",
+    "trials": 3,
+    "queries_per_trial": 5,
+    "budgets": [
+      8000,
+      4000,
+      2000,
+      1000,
+      500
+    ],
+    "ground_truth": "Fixture-defined required evidence IDs: active goal, task, constraint, current decision, test result and refreshSession symbol for the continuation query.",
+    "required_evidence_count": 6,
+    "distractors": "18 synthetic long artifact memories, each containing 24 repetitions of background text.",
+    "estimator": {
+      "id": "graphit:utf8-bytes-per-four",
+      "version": "1",
+      "formula": "ceil(UTF-8 byte length / 4); full serialized context packet including metadata",
+      "model_tokenizer": false
+    },
+    "metric_definitions": {
+      "reduction_ratio": "1 - selected estimated tokens / candidate estimated tokens",
+      "recall_at_k": "Fraction of required IDs found in the first k ranked candidates; k=10",
+      "mrr": "Reciprocal rank of the first required ID, or zero if absent",
+      "required_evidence_recall": "Fraction of required IDs retained in the selected context",
+      "timings": "Measured milliseconds from the local run; not a latency SLA"
+    },
+    "limitations": [
+      "Synthetic, fixture-specific evidence; not proof of universal repository quality or model-answer accuracy.",
+      "Token counts are estimates, not provider tokenizer counts or billed-token savings.",
+      "IDs, temporary paths, timestamps, packing tie-breaks and latency can vary between runs.",
+      "SHA-256 fingerprints provide traceability, not a digital signature or independent attestation.",
+      "Windows only; no cross-platform performance claim."
+    ]
+  },
+  "reproduction": {
+    "commands": [
+      "npm ci",
+      "npm run build",
+      "node examples/context-demo.mjs",
+      "node examples/context-demo.mjs",
+      "node examples/context-demo.mjs",
+      "node node_modules/vitest/vitest.mjs run packages/retrieval/test packages/context/test --reporter=json"
+    ]
+  },
+  "verification": {
+    "benchmark_processes_passed": true,
+    "five_representative_queries_retained_required_evidence": true,
+    "two_thousand_token_budget_respected": true,
+    "two_thousand_token_required_evidence_recall_is_one": true,
+    "token_reduction_exceeds_fifty_percent": true,
+    "cli_quality_passed": true,
+    "insufficient_budgets_reported": true,
+    "p3_regression_tests_passed": true,
+    "no_experimental_warnings": true
+  },
+  "headline_2000_token_budget": {
+    "candidate_tokens": {
+      "min": 27656,
+      "median": 27660,
+      "max": 27664
+    },
+    "selected_estimated_tokens": {
+      "min": 1959,
+      "median": 1960,
+      "max": 1961
+    },
+    "reduction_ratio": {
+      "min": 0.929103,
+      "median": 0.929129,
+      "max": 0.929186
+    },
+    "required_evidence_retained": "6/6 in all three trials",
+    "reduction_percent_median": 92.9129
+  },
+  "regression_tests": {
+    "exit_code": 0,
+    "success": true,
+    "total": 27,
+    "passed": 27,
+    "failed": 0,
+    "pending": 0,
+    "stderr": "",
+    "suites": [
+      {
+        "file": "packages/context/test/context.test.ts",
+        "status": "passed",
+        "assertions": [
+          {
+            "name": "provenance-preserving context compiler selects exact UTF-8 line windows from oversized symbols and keeps paths structural",
+            "status": "passed"
+          },
+          {
+            "name": "provenance-preserving context compiler retains REQUIRED fixture evidence under 2000 estimated tokens despite large candidate context",
+            "status": "passed"
+          },
+          {
+            "name": "provenance-preserving context compiler accounts for full serialized JSON and produces stable packets",
+            "status": "passed"
+          },
+          {
+            "name": "provenance-preserving context compiler preserves original source after filesystem edits and marks historical versions",
+            "status": "passed"
+          },
+          {
+            "name": "provenance-preserving context compiler degrades visibly across 8000,4000,2000,1000,500 and tiny budgets",
+            "status": "passed"
+          },
+          {
+            "name": "provenance-preserving context compiler detects missing and corrupt source evidence instead of returning invented context",
+            "status": "passed"
+          },
+          {
+            "name": "provenance-preserving context compiler validates token estimators and reports unknown mandatory IDs",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "packages/retrieval/test/integration.test.ts",
+        "status": "passed",
+        "assertions": [
+          {
+            "name": "retrieval integration does not promote generic words in natural-language queries to mandatory local-variable matches",
+            "status": "passed"
+          },
+          {
+            "name": "retrieval integration rolls back artifact and relation events together when explicit linking fails",
+            "status": "passed"
+          },
+          {
+            "name": "retrieval integration refreshes the FTS projection after new memory, supersession and code edits",
+            "status": "passed"
+          },
+          {
+            "name": "retrieval integration keeps completed tasks out of current context and explicitly reports no results",
+            "status": "passed"
+          },
+          {
+            "name": "retrieval integration prioritizes exact names and paths and exposes independent rankings",
+            "status": "passed"
+          },
+          {
+            "name": "retrieval integration finds login, callers and current decisions with benchmark-required IDs",
+            "status": "passed"
+          },
+          {
+            "name": "retrieval integration expands explicit task links into current code with provenance and idempotent events",
+            "status": "passed"
+          },
+          {
+            "name": "retrieval integration rebuilds stale/deleted search rows without changing canonical or P1/P2 state",
+            "status": "passed"
+          },
+          {
+            "name": "retrieval integration rejects invalid seeds and isolates projects",
+            "status": "passed"
+          },
+          {
+            "name": "retrieval integration keeps rankings deterministic and protects FTS syntax",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "packages/retrieval/test/migration.test.ts",
+        "status": "passed",
+        "assertions": [
+          {
+            "name": "P3 migration adds FTS5 tables without changing previous schemas or migration ledger entries",
+            "status": "passed"
+          },
+          {
+            "name": "P3 migration rolls back FTS shadow tables and ledger on failure",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "packages/retrieval/test/ranking.test.ts",
+        "status": "passed",
+        "assertions": [
+          {
+            "name": "deterministic retrieval primitives enforces node/hop caps and deterministic edge-order independent expansion",
+            "status": "passed"
+          },
+          {
+            "name": "deterministic retrieval primitives normalizes intent and camelCase without an LLM",
+            "status": "passed"
+          },
+          {
+            "name": "deterministic retrieval primitives rejects empty query \"\"",
+            "status": "passed"
+          },
+          {
+            "name": "deterministic retrieval primitives rejects empty query \"   \"",
+            "status": "passed"
+          },
+          {
+            "name": "deterministic retrieval primitives uses canonical RRF and keeps raw scores diagnostic only",
+            "status": "passed"
+          },
+          {
+            "name": "deterministic retrieval primitives handles personalized dangling mass and bounds reverse expansion",
+            "status": "passed"
+          },
+          {
+            "name": "deterministic retrieval primitives MMR penalizes duplicate content and exact overlapping source spans",
+            "status": "passed"
+          },
+          {
+            "name": "deterministic retrieval primitives measures evidence retention, not just reduction",
+            "status": "passed"
+          }
+        ]
+      }
+    ],
+    "reporter_output_path": ".vitest/json/output.json"
+  },
+  "input_fingerprints": [
+    {
+      "path": "examples/context-demo.mjs",
+      "sha256": "6b7c75db5d4286661acb4105f83c37f923e6a22150e9c8e5aab9d7cf2e7e1293"
+    },
+    {
+      "path": "fixtures/repos/auth-retrieval/duplicate.ts",
+      "sha256": "7cca3d01a27090fa8c6feb4e750c1abeb60d022381a67fcf389f707da0ec84cd"
+    },
+    {
+      "path": "fixtures/repos/auth-retrieval/login.ts",
+      "sha256": "c0cd094c8c1bae70e822217e39e9c10b5938b56e166f4a6a88be1547c8b40511"
+    },
+    {
+      "path": "fixtures/repos/auth-retrieval/other.ts",
+      "sha256": "b5fb8726d0b42f5be062a86d026bab33e2aeacfaaffe1506dbce8230e94412b5"
+    },
+    {
+      "path": "fixtures/repos/auth-retrieval/session.ts",
+      "sha256": "1008e0d024409806f1151759294a926fb9750fb508753c9911e01a8e9c021301"
+    },
+    {
+      "path": "package-lock.json",
+      "sha256": "8001c8b1d2f35c8368f9e91bbb96893f9828328e0df5d00e1d691e644ce758bc"
+    },
+    {
+      "path": "package.json",
+      "sha256": "bffb2f4740cca2ee74a167c2354323b481c166c8717d28be7cebde2941f9e5e1"
+    },
+    {
+      "path": "packages/cli/src/doctor.ts",
+      "sha256": "13b8eecea72f40884f2efee1c5622cc7ea1750faf08d5efdf630d6a59627a59f"
+    },
+    {
+      "path": "packages/cli/src/index.ts",
+      "sha256": "bbef0d4ca5b91e890d6d4f0a58884954c571381841adc056f4eff65b57e62d4f"
+    },
+    {
+      "path": "packages/codegraph/src/domain.ts",
+      "sha256": "11c7a7b8acd33272fb4c71e29ae9023662fa91bb5702d64c488cc2b0ecce951c"
+    },
+    {
+      "path": "packages/codegraph/src/index.ts",
+      "sha256": "200052d2d29310ab3c917d34d57c9e12fac558250e2f254d07d76d420ef25758"
+    },
+    {
+      "path": "packages/codegraph/src/replay.ts",
+      "sha256": "ae99bda21ed70aa289173a2ae61b62926c1d3bc4648ade4d09323f24c82c3f98"
+    },
+    {
+      "path": "packages/codegraph/src/resolve.ts",
+      "sha256": "5ebff9c2757b39c5e46f7194868f1e35f718361385f10e1b1512ac3e27ac17ad"
+    },
+    {
+      "path": "packages/context/src/evidence.ts",
+      "sha256": "e89af8cd67d4fd27c90b362835d171054bae5e630b82756726ef5f87f5eecccd"
+    },
+    {
+      "path": "packages/context/src/index.ts",
+      "sha256": "c4caaa69ae785de526d6c9c75fb881f550f33b3d250db64158c9345aad020726"
+    },
+    {
+      "path": "packages/context/test/context.test.ts",
+      "sha256": "fe71259b4423ed5f1815a361c8fbca23a9da4141f5b7266048556204beae855f"
+    },
+    {
+      "path": "packages/core/src/index.ts",
+      "sha256": "82ba086981174a05309999283d67642eac6afaeb02d8c2a29147bf822c5113f3"
+    },
+    {
+      "path": "packages/core/src/runtime.ts",
+      "sha256": "a1c43b68856f50ebeca0970f55c9c366fa60dbd58b251bcabeac4889e441cd0d"
+    },
+    {
+      "path": "packages/core/src/source-schemas.ts",
+      "sha256": "698f6e0cd2fca0aee3e6e46e6b821764dba8b18c97500f0462e460d8651b4b2d"
+    },
+    {
+      "path": "packages/indexer/src/index.ts",
+      "sha256": "f8d77faf7ccf2f013933d0c8f8a879dc884df7503e3e02030f2a22f251a5cb1f"
+    },
+    {
+      "path": "packages/indexer/src/parser.ts",
+      "sha256": "8c62b37306e8246f5c65ba058f2077854308f7ca8ce742f7c28cd5a7186f2637"
+    },
+    {
+      "path": "packages/indexer/src/scan.ts",
+      "sha256": "0d5a1f1e586bfce2214d62c6edd424ea9a6e1907d49bf85bad2f971f0fa79478"
+    },
+    {
+      "path": "packages/mcp/src/api.ts",
+      "sha256": "a7e59121fc26e9d37ed8abb6d6f742f73471713ae182f40d89e584b6a50cc201"
+    },
+    {
+      "path": "packages/mcp/src/index.ts",
+      "sha256": "a243eca1e614f2b1607050576eb2c14a7b6a002d0db5cbff9829a1c0d89d19fd"
+    },
+    {
+      "path": "packages/memory/src/domain.ts",
+      "sha256": "600ef0ce460e2de7a719cf62ef88c58612af59023a244a638176f3157d124418"
+    },
+    {
+      "path": "packages/memory/src/handoff.ts",
+      "sha256": "045fecb229461cd9cd51934d89597830cf704f380a0537b43ac8237b9927ba6a"
+    },
+    {
+      "path": "packages/memory/src/index.ts",
+      "sha256": "3ab70eb17ac597704e14fe9ef7d525691b0d490f1ee43913147e25cc5d94ac8c"
+    },
+    {
+      "path": "packages/memory/src/projection.ts",
+      "sha256": "6b516360b5e5157fe17455b20ede24bd66aadf40bcdabc16a3fcf6f9bf8a03c3"
+    },
+    {
+      "path": "packages/memory/src/replay.ts",
+      "sha256": "a435775c8c4efe9bcf6d58e57caafa56cf6c066e347d1628484bbef222299bf4"
+    },
+    {
+      "path": "packages/retrieval/src/domain.ts",
+      "sha256": "d142a7e96827344aa7cdd50d56f10548e5edc08ddfe3325d7f6fa958accda46c"
+    },
+    {
+      "path": "packages/retrieval/src/index.ts",
+      "sha256": "45464d7ee54eeea035f57b28b279e05f6644073e07bc07ef5f38e87b30b5242e"
+    },
+    {
+      "path": "packages/retrieval/src/metrics.ts",
+      "sha256": "1d1529e4e00cbbcf3a261fb515cc1635ba50726141a530094942feeeed8aa2a7"
+    },
+    {
+      "path": "packages/retrieval/src/ranking.ts",
+      "sha256": "f8367094d0b2197df3418796131dd2a4bdefc1c7ef3d20dfe109ca75820d6f57"
+    },
+    {
+      "path": "packages/retrieval/test/helpers.ts",
+      "sha256": "247f68e9612acfa21d3d9439440222160dba98ccf1a2f039413fd964b10e679d"
+    },
+    {
+      "path": "packages/retrieval/test/integration.test.ts",
+      "sha256": "b495e882ef9c86610329954c293203e0e95a7df1b3bd2ab7cf834587255ede77"
+    },
+    {
+      "path": "packages/retrieval/test/migration.test.ts",
+      "sha256": "2ddf708ee2661a8940b0df2097b90d1a533354627726478fbfb3aff0e767a6e0"
+    },
+    {
+      "path": "packages/retrieval/test/ranking.test.ts",
+      "sha256": "d2fa65f93fe6692f7359fda01fd2a56c01bd252d13953d87c634b61e65735664"
+    },
+    {
+      "path": "packages/storage/migrations/001_initial.sql",
+      "sha256": "66449f6da1c0af2a02906c854fd08fba77fc8d3e401542aa8aa0ca409a713870"
+    },
+    {
+      "path": "packages/storage/migrations/002_memory.sql",
+      "sha256": "35f87f566add686de74547f505dcc91b6e598b7f2596bfb765ac64d51b738639"
+    },
+    {
+      "path": "packages/storage/migrations/003_code_intelligence.sql",
+      "sha256": "2e38d904895b8b62474f20f1d47bea87fe83f09fafbaea99478c5b65ea9021a2"
+    },
+    {
+      "path": "packages/storage/migrations/004_retrieval.sql",
+      "sha256": "b8ca7a705d037c0979367d807e335ccb847f33a6aed98416907449bb8131004c"
+    },
+    {
+      "path": "packages/storage/src/blobs.ts",
+      "sha256": "8440b707ae0e5f802b7462ac11781f8a1280a3a762bcc606621d9fe1608bdc69"
+    },
+    {
+      "path": "packages/storage/src/index.ts",
+      "sha256": "31a5cd4ef6f998aaa0bdf9dddfaa476b59f612603b3aa2b82b1bb5ad46169cf2"
+    },
+    {
+      "path": "packages/storage/src/migrations.ts",
+      "sha256": "290038b23b33ce7d02e053f706ae1064b3ed6a008914f810df222e83576bff0b"
+    },
+    {
+      "path": "packages/storage/src/portable.ts",
+      "sha256": "a6639b5498c152fc2e32fab6c8c446f5de00747161ab2ce54e0e82c2b21aa4f9"
+    },
+    {
+      "path": "packages/storage/src/search.ts",
+      "sha256": "ff98aecb25e1a469a49b194a57a5326ac306f11e5fe037f947e9bb74c65b62ef"
+    },
+    {
+      "path": "packages/storage/src/sqlite.ts",
+      "sha256": "0e9976f8432d86a3b1aa8c1466341e9a7fc0fec7fbeba04231625d8863bbde81"
+    }
+  ],
+  "trials": [
+    {
+      "trial": 1,
+      "exit_code": 0,
+      "stderr": "",
+      "stdout_sha256": "d07e37e35006e47db678ce75b3c71eafbd273cb6a0b0e06ac5f2a86fbc9b392a",
+      "results": {
+        "retrieval": [
+          {
+            "query": "where is login handled?",
+            "recall_at_k": 1,
+            "mrr": 1,
+            "required_ids": [
+              "symbol:e20c08201b41c15fa623c9d3bc4c1952a423103643ab5eceb92351837ec6e543"
+            ],
+            "retrieval_ms": 37.8735999999999,
+            "ppr_ms": 2.458599999999933,
+            "context_quality": {
+              "passed": true,
+              "required_evidence_recall": 1,
+              "missing": []
+            },
+            "selected_tokens": 3865
+          },
+          {
+            "query": "what calls createSession?",
+            "recall_at_k": 1,
+            "mrr": 0.2,
+            "required_ids": [
+              "symbol:e20c08201b41c15fa623c9d3bc4c1952a423103643ab5eceb92351837ec6e543"
+            ],
+            "retrieval_ms": 27.031099999999924,
+            "ppr_ms": 0.34999999999990905,
+            "context_quality": {
+              "passed": true,
+              "required_evidence_recall": 1,
+              "missing": []
+            },
+            "selected_tokens": 3906
+          },
+          {
+            "query": "continue implementing refresh rotation",
+            "recall_at_k": 1,
+            "mrr": 1,
+            "required_ids": [
+              "memory:4bb93ce4123fa76db4e6ebf9b5b684496ba35de656f4c910e1fa5031fe933f5a",
+              "memory:669a7d096a9d222c6b51e9f73d3966cf695cd99d6b61a0d933cad1c6be7ca39c",
+              "memory:b528a4cb19c2809c20f3fb3d479c3edaed3ce91f4acd56d7d48fe28dd8381cab",
+              "memory:987771730955466762216afe0c9b3546e35536491283d7fd8266595ce10be255",
+              "memory:5e146bcecde437e169ae2728711f4f29e848fdfbb7dc035250d0740a69109b53",
+              "symbol:cd05ccb9d1a27fae9d4d5317bd6085084fb4cac8489d35126498d66e6ef99189"
+            ],
+            "retrieval_ms": 27.247100000000046,
+            "ppr_ms": 1.1958000000001903,
+            "context_quality": {
+              "passed": true,
+              "required_evidence_recall": 1,
+              "missing": []
+            },
+            "selected_tokens": 1959
+          },
+          {
+            "query": "why are we using SQLite?",
+            "recall_at_k": 1,
+            "mrr": 1,
+            "required_ids": [
+              "memory:987771730955466762216afe0c9b3546e35536491283d7fd8266595ce10be255"
+            ],
+            "retrieval_ms": 28.45959999999991,
+            "ppr_ms": 0.4296999999999116,
+            "context_quality": {
+              "passed": true,
+              "required_evidence_recall": 1,
+              "missing": []
+            },
+            "selected_tokens": 3954
+          },
+          {
+            "query": "what is affected by changing refreshSession?",
+            "recall_at_k": 1,
+            "mrr": 0.2,
+            "required_ids": [
+              "symbol:439172a846903a32854103b70fb35ba9f51594a1d073758aa8b6442382b7c058",
+              "symbol:e20c08201b41c15fa623c9d3bc4c1952a423103643ab5eceb92351837ec6e543"
+            ],
+            "retrieval_ms": 27.495200000000068,
+            "ppr_ms": 0.1775000000000091,
+            "context_quality": {
+              "passed": true,
+              "required_evidence_recall": 1,
+              "missing": []
+            },
+            "selected_tokens": 3878
+          }
+        ],
+        "budgets": [
+          {
+            "estimator": "graphit:utf8-bytes-per-four",
+            "estimator_version": "1",
+            "requested_tokens": 8000,
+            "estimated_tokens": 7994,
+            "candidate_tokens": 27664,
+            "reduction_ratio": 0.711032,
+            "budget_insufficient": false,
+            "passed": true,
+            "required_evidence_recall": 1,
+            "missing": [],
+            "compiler_quality": {
+              "passed": true,
+              "required_evidence_recall": 1,
+              "missing": []
+            },
+            "evidence_count": 20,
+            "retrieval_ms": 26.84699999999998,
+            "ppr_ms": 0.4329999999999927,
+            "packing_ms": 166.58650000000011,
+            "total_ms": 193.47119999999995
+          },
+          {
+            "estimator": "graphit:utf8-bytes-per-four",
+            "estimator_version": "1",
+            "requested_tokens": 4000,
+            "estimated_tokens": 3993,
+            "candidate_tokens": 27664,
+            "reduction_ratio": 0.855661,
+            "budget_insufficient": false,
+            "passed": true,
+            "required_evidence_recall": 1,
+            "missing": [],
+            "compiler_quality": {
+              "passed": true,
+              "required_evidence_recall": 1,
+              "missing": []
+            },
+            "evidence_count": 14,
+            "retrieval_ms": 28.88259999999991,
+            "ppr_ms": 0.42250000000012733,
+            "packing_ms": 133.02700000000004,
+            "total_ms": 161.94880000000012
+          },
+          {
+            "estimator": "graphit:utf8-bytes-per-four",
+            "estimator_version": "1",
+            "requested_tokens": 2000,
+            "estimated_tokens": 1959,
+            "candidate_tokens": 27664,
+            "reduction_ratio": 0.929186,
+            "budget_insufficient": false,
+            "passed": true,
+            "required_evidence_recall": 1,
+            "missing": [],
+            "compiler_quality": {
+              "passed": true,
+              "required_evidence_recall": 1,
+              "missing": []
+            },
+            "evidence_count": 8,
+            "retrieval_ms": 28.940599999999904,
+            "ppr_ms": 0.45319999999992433,
+            "packing_ms": 111.73630000000003,
+            "total_ms": 140.7202000000002
+          },
+          {
+            "estimator": "graphit:utf8-bytes-per-four",
+            "estimator_version": "1",
+            "requested_tokens": 1000,
+            "estimated_tokens": 997,
+            "candidate_tokens": 27664,
+            "reduction_ratio": 0.96396,
+            "budget_insufficient": true,
+            "passed": false,
+            "required_evidence_recall": 0.6666666666666667,
+            "missing": [
+              "memory:987771730955466762216afe0c9b3546e35536491283d7fd8266595ce10be255",
+              "symbol:cd05ccb9d1a27fae9d4d5317bd6085084fb4cac8489d35126498d66e6ef99189"
+            ],
+            "compiler_quality": {
+              "passed": false,
+              "required_evidence_recall": 0.5714285714285714,
+              "missing": [
+                "memory:987771730955466762216afe0c9b3546e35536491283d7fd8266595ce10be255",
+                "path:01113ad7da7c9f91432f9e47fa3458799c1c6c839ab06d8daca52b9748d765f8",
+                "symbol:cd05ccb9d1a27fae9d4d5317bd6085084fb4cac8489d35126498d66e6ef99189"
+              ]
+            },
+            "evidence_count": 4,
+            "retrieval_ms": 29.753600000000006,
+            "ppr_ms": 0.4272000000000844,
+            "packing_ms": 102.68600000000015,
+            "total_ms": 132.47980000000007
+          },
+          {
+            "estimator": "graphit:utf8-bytes-per-four",
+            "estimator_version": "1",
+            "requested_tokens": 500,
+            "estimated_tokens": 493,
+            "candidate_tokens": 27663,
+            "reduction_ratio": 0.982178,
+            "budget_insufficient": true,
+            "passed": false,
+            "required_evidence_recall": 0.16666666666666663,
+            "missing": [
+              "memory:4bb93ce4123fa76db4e6ebf9b5b684496ba35de656f4c910e1fa5031fe933f5a",
+              "memory:669a7d096a9d222c6b51e9f73d3966cf695cd99d6b61a0d933cad1c6be7ca39c",
+              "memory:987771730955466762216afe0c9b3546e35536491283d7fd8266595ce10be255",
+              "memory:b528a4cb19c2809c20f3fb3d479c3edaed3ce91f4acd56d7d48fe28dd8381cab",
+              "symbol:cd05ccb9d1a27fae9d4d5317bd6085084fb4cac8489d35126498d66e6ef99189"
+            ],
+            "compiler_quality": {
+              "passed": false,
+              "required_evidence_recall": 0.1428571428571429,
+              "missing": [
+                "memory:4bb93ce4123fa76db4e6ebf9b5b684496ba35de656f4c910e1fa5031fe933f5a",
+                "memory:669a7d096a9d222c6b51e9f73d3966cf695cd99d6b61a0d933cad1c6be7ca39c",
+                "memory:987771730955466762216afe0c9b3546e35536491283d7fd8266595ce10be255",
+                "memory:b528a4cb19c2809c20f3fb3d479c3edaed3ce91f4acd56d7d48fe28dd8381cab",
+                "path:01113ad7da7c9f91432f9e47fa3458799c1c6c839ab06d8daca52b9748d765f8",
+                "symbol:cd05ccb9d1a27fae9d4d5317bd6085084fb4cac8489d35126498d66e6ef99189"
+              ]
+            },
+            "evidence_count": 1,
+            "retrieval_ms": 29.850999999999658,
+            "ppr_ms": 0.48700000000008004,
+            "packing_ms": 94.05670000000009,
+            "total_ms": 123.97710000000006
+          }
+        ],
+        "cli": {
+          "budget": {
+            "budget_insufficient": false,
+            "candidate_tokens": 27664,
+            "estimated_tokens": 1959,
+            "estimator": "graphit:utf8-bytes-per-four",
+            "estimator_version": "1",
+            "reduction_ratio": 0.929186,
+            "requested_tokens": 2000
+          },
+          "quality": {
+            "passed": true,
+            "required_evidence_recall": 1,
+            "missing": []
+          }
+        }
+      }
+    },
+    {
+      "trial": 2,
+      "exit_code": 0,
+      "stderr": "",
+      "stdout_sha256": "4f121f7354fab1691aaff928d04cc540bec87d8cdc15c3725d72f3807c826695",
+      "results": {
+        "retrieval": [
+          {
+            "query": "where is login handled?",
+            "recall_at_k": 1,
+            "mrr": 1,
+            "required_ids": [
+              "symbol:90bc390b79a00ee21aff35eaea4d002dc41131e96907c53894cd452a2f66114a"
+            ],
+            "retrieval_ms": 35.08459999999991,
+            "ppr_ms": 1.5070000000000618,
+            "context_quality": {
+              "passed": true,
+              "required_evidence_recall": 1,
+              "missing": []
+            },
+            "selected_tokens": 3844
+          },
+          {
+            "query": "what calls createSession?",
+            "recall_at_k": 1,
+            "mrr": 0.2,
+            "required_ids": [
+              "symbol:90bc390b79a00ee21aff35eaea4d002dc41131e96907c53894cd452a2f66114a"
+            ],
+            "retrieval_ms": 28.307600000000093,
+            "ppr_ms": 0.3735999999998967,
+            "context_quality": {
+              "passed": true,
+              "required_evidence_recall": 1,
+              "missing": []
+            },
+            "selected_tokens": 3906
+          },
+          {
+            "query": "continue implementing refresh rotation",
+            "recall_at_k": 1,
+            "mrr": 1,
+            "required_ids": [
+              "memory:fedc760c8b15e66a03d47ce717ed16afcb4066f8e9f658c250609b72982be4bc",
+              "memory:597011e0e20c93f1b0c6136bf63086bbb3d590666358172e1adc73c34ada4736",
+              "memory:bf8ad82f83c7474eae23779e74c1031a11783f702cdc11511ccf8440b933af73",
+              "memory:058ff0a25877cc6a258372aef7e5131724e41f28bd1ea812557a3901eeefceab",
+              "memory:786a55017289d163825b395b7733ef43c11e7aa379a8349b3ac178c6caa52226",
+              "symbol:f9d444ee09bbdcd3b5bb7e27313dbeae4449b9abc230e953a32e7de7755da489"
+            ],
+            "retrieval_ms": 30.66190000000006,
+            "ppr_ms": 2.007699999999886,
+            "context_quality": {
+              "passed": true,
+              "required_evidence_recall": 1,
+              "missing": []
+            },
+            "selected_tokens": 1960
+          },
+          {
+            "query": "why are we using SQLite?",
+            "recall_at_k": 1,
+            "mrr": 1,
+            "required_ids": [
+              "memory:058ff0a25877cc6a258372aef7e5131724e41f28bd1ea812557a3901eeefceab"
+            ],
+            "retrieval_ms": 27.14709999999991,
+            "ppr_ms": 0.42929999999978463,
+            "context_quality": {
+              "passed": true,
+              "required_evidence_recall": 1,
+              "missing": []
+            },
+            "selected_tokens": 3955
+          },
+          {
+            "query": "what is affected by changing refreshSession?",
+            "recall_at_k": 1,
+            "mrr": 0.2,
+            "required_ids": [
+              "symbol:1783cec01bfebf3c1fa7d040a974b71874929206099a9db49ff37afae94b754e",
+              "symbol:90bc390b79a00ee21aff35eaea4d002dc41131e96907c53894cd452a2f66114a"
+            ],
+            "retrieval_ms": 27.541200000000117,
+            "ppr_ms": 0.2501999999999498,
+            "context_quality": {
+              "passed": true,
+              "required_evidence_recall": 1,
+              "missing": []
+            },
+            "selected_tokens": 3878
+          }
+        ],
+        "budgets": [
+          {
+            "estimator": "graphit:utf8-bytes-per-four",
+            "estimator_version": "1",
+            "requested_tokens": 8000,
+            "estimated_tokens": 7837,
+            "candidate_tokens": 27656,
+            "reduction_ratio": 0.716626,
+            "budget_insufficient": false,
+            "passed": true,
+            "required_evidence_recall": 1,
+            "missing": [],
+            "compiler_quality": {
+              "passed": true,
+              "required_evidence_recall": 1,
+              "missing": []
+            },
+            "evidence_count": 18,
+            "retrieval_ms": 36.84899999999993,
+            "ppr_ms": 0.5169000000000779,
+            "packing_ms": 181.02530000000002,
+            "total_ms": 217.9106999999999
+          },
+          {
+            "estimator": "graphit:utf8-bytes-per-four",
+            "estimator_version": "1",
+            "requested_tokens": 4000,
+            "estimated_tokens": 3993,
+            "candidate_tokens": 27656,
+            "reduction_ratio": 0.855619,
+            "budget_insufficient": false,
+            "passed": true,
+            "required_evidence_recall": 1,
+            "missing": [],
+            "compiler_quality": {
+              "passed": true,
+              "required_evidence_recall": 1,
+              "missing": []
+            },
+            "evidence_count": 14,
+            "retrieval_ms": 34.73970000000031,
+            "ppr_ms": 0.4958999999998923,
+            "packing_ms": 148.28549999999996,
+            "total_ms": 183.06679999999983
+          },
+          {
+            "estimator": "graphit:utf8-bytes-per-four",
+            "estimator_version": "1",
+            "requested_tokens": 2000,
+            "estimated_tokens": 1960,
+            "candidate_tokens": 27656,
+            "reduction_ratio": 0.929129,
+            "budget_insufficient": false,
+            "passed": true,
+            "required_evidence_recall": 1,
+            "missing": [],
+            "compiler_quality": {
+              "passed": true,
+              "required_evidence_recall": 1,
+              "missing": []
+            },
+            "evidence_count": 8,
+            "retrieval_ms": 32.39780000000019,
+            "ppr_ms": 0.5252000000000407,
+            "packing_ms": 134.59310000000005,
+            "total_ms": 167.03359999999975
+          },
+          {
+            "estimator": "graphit:utf8-bytes-per-four",
+            "estimator_version": "1",
+            "requested_tokens": 1000,
+            "estimated_tokens": 997,
+            "candidate_tokens": 27656,
+            "reduction_ratio": 0.96395,
+            "budget_insufficient": true,
+            "passed": false,
+            "required_evidence_recall": 0.6666666666666667,
+            "missing": [
+              "memory:058ff0a25877cc6a258372aef7e5131724e41f28bd1ea812557a3901eeefceab",
+              "symbol:f9d444ee09bbdcd3b5bb7e27313dbeae4449b9abc230e953a32e7de7755da489"
+            ],
+            "compiler_quality": {
+              "passed": false,
+              "required_evidence_recall": 0.5714285714285714,
+              "missing": [
+                "memory:058ff0a25877cc6a258372aef7e5131724e41f28bd1ea812557a3901eeefceab",
+                "path:333b48231b561f4064b86fe16558107d5df60a909ed49eaeb336dd9e24dbc8bf",
+                "symbol:f9d444ee09bbdcd3b5bb7e27313dbeae4449b9abc230e953a32e7de7755da489"
+              ]
+            },
+            "evidence_count": 4,
+            "retrieval_ms": 26.433800000000247,
+            "ppr_ms": 0.47710000000006403,
+            "packing_ms": 106.63310000000001,
+            "total_ms": 133.10609999999997
+          },
+          {
+            "estimator": "graphit:utf8-bytes-per-four",
+            "estimator_version": "1",
+            "requested_tokens": 500,
+            "estimated_tokens": 493,
+            "candidate_tokens": 27655,
+            "reduction_ratio": 0.982173,
+            "budget_insufficient": true,
+            "passed": false,
+            "required_evidence_recall": 0.16666666666666663,
+            "missing": [
+              "memory:058ff0a25877cc6a258372aef7e5131724e41f28bd1ea812557a3901eeefceab",
+              "memory:597011e0e20c93f1b0c6136bf63086bbb3d590666358172e1adc73c34ada4736",
+              "memory:bf8ad82f83c7474eae23779e74c1031a11783f702cdc11511ccf8440b933af73",
+              "memory:fedc760c8b15e66a03d47ce717ed16afcb4066f8e9f658c250609b72982be4bc",
+              "symbol:f9d444ee09bbdcd3b5bb7e27313dbeae4449b9abc230e953a32e7de7755da489"
+            ],
+            "compiler_quality": {
+              "passed": false,
+              "required_evidence_recall": 0.1428571428571429,
+              "missing": [
+                "memory:058ff0a25877cc6a258372aef7e5131724e41f28bd1ea812557a3901eeefceab",
+                "memory:597011e0e20c93f1b0c6136bf63086bbb3d590666358172e1adc73c34ada4736",
+                "memory:bf8ad82f83c7474eae23779e74c1031a11783f702cdc11511ccf8440b933af73",
+                "memory:fedc760c8b15e66a03d47ce717ed16afcb4066f8e9f658c250609b72982be4bc",
+                "path:333b48231b561f4064b86fe16558107d5df60a909ed49eaeb336dd9e24dbc8bf",
+                "symbol:f9d444ee09bbdcd3b5bb7e27313dbeae4449b9abc230e953a32e7de7755da489"
+              ]
+            },
+            "evidence_count": 1,
+            "retrieval_ms": 33.98790000000008,
+            "ppr_ms": 0.4821999999999207,
+            "packing_ms": 95.2464,
+            "total_ms": 129.2755000000002
+          }
+        ],
+        "cli": {
+          "budget": {
+            "budget_insufficient": false,
+            "candidate_tokens": 27656,
+            "estimated_tokens": 1960,
+            "estimator": "graphit:utf8-bytes-per-four",
+            "estimator_version": "1",
+            "reduction_ratio": 0.929129,
+            "requested_tokens": 2000
+          },
+          "quality": {
+            "passed": true,
+            "required_evidence_recall": 1,
+            "missing": []
+          }
+        }
+      }
+    },
+    {
+      "trial": 3,
+      "exit_code": 0,
+      "stderr": "",
+      "stdout_sha256": "39b250ef7af3615ddccc8c98c7eaa9a41ed38b8caebdd53887f2b544e417a10f",
+      "results": {
+        "retrieval": [
+          {
+            "query": "where is login handled?",
+            "recall_at_k": 1,
+            "mrr": 1,
+            "required_ids": [
+              "symbol:e45bdfb7d8ad6a40bb9c4fbead27d400b24a74338255fff6c975db4e02090922"
+            ],
+            "retrieval_ms": 46.684400000000096,
+            "ppr_ms": 1.7888000000000375,
+            "context_quality": {
+              "passed": true,
+              "required_evidence_recall": 1,
+              "missing": []
+            },
+            "selected_tokens": 3844
+          },
+          {
+            "query": "what calls createSession?",
+            "recall_at_k": 1,
+            "mrr": 0.2,
+            "required_ids": [
+              "symbol:e45bdfb7d8ad6a40bb9c4fbead27d400b24a74338255fff6c975db4e02090922"
+            ],
+            "retrieval_ms": 27.40910000000008,
+            "ppr_ms": 0.3264000000001488,
+            "context_quality": {
+              "passed": true,
+              "required_evidence_recall": 1,
+              "missing": []
+            },
+            "selected_tokens": 3907
+          },
+          {
+            "query": "continue implementing refresh rotation",
+            "recall_at_k": 1,
+            "mrr": 1,
+            "required_ids": [
+              "memory:e7a9c4c5a7d29ee03c4713f35ef2cef3c5b6b8347a3605bcb045f75aad765225",
+              "memory:9eccfb2673276e104dd178a3623155c2ec27f587bfcec3e733ee37402784e6b5",
+              "memory:a82ca5a633eb3cc43164eb2d984747d524face4bb77f7969fa5c26e9d020880c",
+              "memory:908a4584d456ab0f241c350e57119392979ca2620cfdd7df2a180ee560fd46b3",
+              "memory:a30cab4df742f863661c7a8f59caf2e42f9875f5bfc4db8507d90c24e2707820",
+              "symbol:0bacd374c524be43ba2bc12da3664dfb562f5af228c150e61ee0b4f7831700ca"
+            ],
+            "retrieval_ms": 31.127300000000105,
+            "ppr_ms": 1.1817000000000917,
+            "context_quality": {
+              "passed": true,
+              "required_evidence_recall": 1,
+              "missing": []
+            },
+            "selected_tokens": 1961
+          },
+          {
+            "query": "why are we using SQLite?",
+            "recall_at_k": 1,
+            "mrr": 1,
+            "required_ids": [
+              "memory:908a4584d456ab0f241c350e57119392979ca2620cfdd7df2a180ee560fd46b3"
+            ],
+            "retrieval_ms": 28.142100000000028,
+            "ppr_ms": 0.4277999999999338,
+            "context_quality": {
+              "passed": true,
+              "required_evidence_recall": 1,
+              "missing": []
+            },
+            "selected_tokens": 3958
+          },
+          {
+            "query": "what is affected by changing refreshSession?",
+            "recall_at_k": 1,
+            "mrr": 0.2,
+            "required_ids": [
+              "symbol:9e83608b3ed82c892e04282ce3ebbfe33b83d68a0258a67f85c0f1a96587b0d1",
+              "symbol:e45bdfb7d8ad6a40bb9c4fbead27d400b24a74338255fff6c975db4e02090922"
+            ],
+            "retrieval_ms": 25.824400000000196,
+            "ppr_ms": 0.1356999999998152,
+            "context_quality": {
+              "passed": true,
+              "required_evidence_recall": 1,
+              "missing": []
+            },
+            "selected_tokens": 3878
+          }
+        ],
+        "budgets": [
+          {
+            "estimator": "graphit:utf8-bytes-per-four",
+            "estimator_version": "1",
+            "requested_tokens": 8000,
+            "estimated_tokens": 7836,
+            "candidate_tokens": 27660,
+            "reduction_ratio": 0.716703,
+            "budget_insufficient": false,
+            "passed": true,
+            "required_evidence_recall": 1,
+            "missing": [],
+            "compiler_quality": {
+              "passed": true,
+              "required_evidence_recall": 1,
+              "missing": []
+            },
+            "evidence_count": 18,
+            "retrieval_ms": 29.977100000000064,
+            "ppr_ms": 0.6023000000000138,
+            "packing_ms": 163.92290000000003,
+            "total_ms": 193.9980999999998
+          },
+          {
+            "estimator": "graphit:utf8-bytes-per-four",
+            "estimator_version": "1",
+            "requested_tokens": 4000,
+            "estimated_tokens": 3801,
+            "candidate_tokens": 27660,
+            "reduction_ratio": 0.862581,
+            "budget_insufficient": false,
+            "passed": true,
+            "required_evidence_recall": 1,
+            "missing": [],
+            "compiler_quality": {
+              "passed": true,
+              "required_evidence_recall": 1,
+              "missing": []
+            },
+            "evidence_count": 13,
+            "retrieval_ms": 29.59979999999996,
+            "ppr_ms": 0.4117999999998574,
+            "packing_ms": 131.63699999999972,
+            "total_ms": 161.27779999999984
+          },
+          {
+            "estimator": "graphit:utf8-bytes-per-four",
+            "estimator_version": "1",
+            "requested_tokens": 2000,
+            "estimated_tokens": 1961,
+            "candidate_tokens": 27660,
+            "reduction_ratio": 0.929103,
+            "budget_insufficient": false,
+            "passed": true,
+            "required_evidence_recall": 1,
+            "missing": [],
+            "compiler_quality": {
+              "passed": true,
+              "required_evidence_recall": 1,
+              "missing": []
+            },
+            "evidence_count": 8,
+            "retrieval_ms": 26.365900000000238,
+            "ppr_ms": 0.4203000000002248,
+            "packing_ms": 110.77700000000004,
+            "total_ms": 137.19749999999976
+          },
+          {
+            "estimator": "graphit:utf8-bytes-per-four",
+            "estimator_version": "1",
+            "requested_tokens": 1000,
+            "estimated_tokens": 997,
+            "candidate_tokens": 27660,
+            "reduction_ratio": 0.963955,
+            "budget_insufficient": true,
+            "passed": false,
+            "required_evidence_recall": 0.6666666666666667,
+            "missing": [
+              "memory:908a4584d456ab0f241c350e57119392979ca2620cfdd7df2a180ee560fd46b3",
+              "symbol:0bacd374c524be43ba2bc12da3664dfb562f5af228c150e61ee0b4f7831700ca"
+            ],
+            "compiler_quality": {
+              "passed": false,
+              "required_evidence_recall": 0.5714285714285714,
+              "missing": [
+                "memory:908a4584d456ab0f241c350e57119392979ca2620cfdd7df2a180ee560fd46b3",
+                "path:1e0d01c23489d063cd96f41785749e70d23ee99ed337ac914edbe4c909b5d685",
+                "symbol:0bacd374c524be43ba2bc12da3664dfb562f5af228c150e61ee0b4f7831700ca"
+              ]
+            },
+            "evidence_count": 4,
+            "retrieval_ms": 26.729499999999916,
+            "ppr_ms": 0.4362999999998465,
+            "packing_ms": 110.5622000000003,
+            "total_ms": 137.36360000000013
+          },
+          {
+            "estimator": "graphit:utf8-bytes-per-four",
+            "estimator_version": "1",
+            "requested_tokens": 500,
+            "estimated_tokens": 493,
+            "candidate_tokens": 27659,
+            "reduction_ratio": 0.982176,
+            "budget_insufficient": true,
+            "passed": false,
+            "required_evidence_recall": 0.16666666666666663,
+            "missing": [
+              "memory:908a4584d456ab0f241c350e57119392979ca2620cfdd7df2a180ee560fd46b3",
+              "memory:9eccfb2673276e104dd178a3623155c2ec27f587bfcec3e733ee37402784e6b5",
+              "memory:a82ca5a633eb3cc43164eb2d984747d524face4bb77f7969fa5c26e9d020880c",
+              "memory:e7a9c4c5a7d29ee03c4713f35ef2cef3c5b6b8347a3605bcb045f75aad765225",
+              "symbol:0bacd374c524be43ba2bc12da3664dfb562f5af228c150e61ee0b4f7831700ca"
+            ],
+            "compiler_quality": {
+              "passed": false,
+              "required_evidence_recall": 0.1428571428571429,
+              "missing": [
+                "memory:908a4584d456ab0f241c350e57119392979ca2620cfdd7df2a180ee560fd46b3",
+                "memory:9eccfb2673276e104dd178a3623155c2ec27f587bfcec3e733ee37402784e6b5",
+                "memory:a82ca5a633eb3cc43164eb2d984747d524face4bb77f7969fa5c26e9d020880c",
+                "memory:e7a9c4c5a7d29ee03c4713f35ef2cef3c5b6b8347a3605bcb045f75aad765225",
+                "path:1e0d01c23489d063cd96f41785749e70d23ee99ed337ac914edbe4c909b5d685",
+                "symbol:0bacd374c524be43ba2bc12da3664dfb562f5af228c150e61ee0b4f7831700ca"
+              ]
+            },
+            "evidence_count": 1,
+            "retrieval_ms": 28.60550000000012,
+            "ppr_ms": 0.4165000000002692,
+            "packing_ms": 90.30769999999984,
+            "total_ms": 118.95209999999997
+          }
+        ],
+        "cli": {
+          "budget": {
+            "budget_insufficient": false,
+            "candidate_tokens": 27660,
+            "estimated_tokens": 1961,
+            "estimator": "graphit:utf8-bytes-per-four",
+            "estimator_version": "1",
+            "reduction_ratio": 0.929103,
+            "requested_tokens": 2000
+          },
+          "quality": {
+            "passed": true,
+            "required_evidence_recall": 1,
+            "missing": []
+          }
+        }
+      }
+    }
+  ],
+  "build": {
+    "command": "npm run build",
+    "exit_code": 0
+  }
+}

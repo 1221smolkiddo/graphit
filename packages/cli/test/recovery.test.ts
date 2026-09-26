@@ -21,10 +21,12 @@ describe('P6B corruption and derived repair', () => {
     expect(readFileSync(f.path)).toEqual(bytes);
   });
 
-  it.each(['missing table', 'bad ledger', 'missing ledger', 'partial ledger', 'future schema', 'integrity'])('fails closed on %s', async kind => {
+  it.each(['missing table', 'missing events', 'missing source blobs', 'bad ledger', 'missing ledger', 'partial ledger', 'future schema', 'integrity'])('fails closed on %s', async kind => {
     const f = await project(); const db = new SqliteDatabase(f.path);
     try {
       if (kind === 'missing table') db.exec('DROP TABLE memory_entities;');
+      if (kind === 'missing events') db.exec('DROP TRIGGER events_no_delete; DROP TABLE events;');
+      if (kind === 'missing source blobs') db.exec('DROP TRIGGER source_blobs_no_delete; DROP TABLE source_blobs;');
       if (kind === 'bad ledger') db.exec("UPDATE schema_migrations SET checksum = 'bad' WHERE version = 2;");
       if (kind === 'missing ledger') db.exec('DROP TABLE schema_migrations;');
       if (kind === 'partial ledger') db.exec('DELETE FROM schema_migrations WHERE version = 4;');

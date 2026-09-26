@@ -60,8 +60,20 @@ describe('P6B upgrade matrix and older-schema bundles', () => {
           expect(readCanonical()).toEqual(before);
           expect(memory.generateHandoff(f.id).project.id).toBe(f.id);
           const results = retrieval.retrieve({ projectId: f.id, text: 'recover evidence' });
-          if (version > 1) expect(results.candidates.length).toBeGreaterThan(0);
-          else expect(results.diagnostics.no_results).toBe(true);
+          if (version > 1) {
+            expect(results.candidates.length).toBeGreaterThan(0);
+            const lexical = results.diagnostics.channels.find(channel => channel.channel === 'bm25_memory')!;
+            expect(lexical.entries.length).toBeGreaterThan(0);
+            expect(lexical.entries.every(entry => Number.isFinite(entry.score) && entry.score! < 0)).toBe(true);
+            const ppr = results.diagnostics.channels.find(channel => channel.channel === 'ppr')!;
+            expect(ppr.entries.some(entry => Number.isFinite(entry.score) && entry.score! > 0)).toBe(true);
+            expect(results.diagnostics.ppr_iterations).toBeGreaterThan(0);
+          } else expect(results.diagnostics.no_results).toBe(true);
+          if (version >= 3) {
+            const symbols = graph.findSymbolsByName(f.id, 'recoverEvidence');
+            expect(symbols).toHaveLength(1);
+            expect(store.readSourceBlob(symbols[0]!.span.contentHash).byte_length).toBeGreaterThan(0);
+          }
           const db = new SqliteDatabase(f.path, { readonly: true });
           try {
             const ledger = db.prepare('SELECT * FROM schema_migrations ORDER BY version').all();

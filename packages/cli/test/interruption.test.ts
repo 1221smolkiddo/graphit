@@ -5,15 +5,27 @@ import { EventStore, SqliteDatabase, readExportFile, validateExport } from '@gra
 import { canonical, cliUrl, killAtBarrier, ok, pause, project, run, temporary } from './recovery-helpers.js';
 
 describe('P6B real process interruption and recovery', () => {
-  it.each(['open', 'transaction'])('recovers WAL after a process is killed at %s', async stage => {
+  it.each(['open', 'transaction', 'event append'])('recovers WAL after a process is killed at %s', async stage => {
     const f = await project();
     await killAtBarrier(`
-      import { EventStore } from '@graphit/storage';
+      import { EventStore, SqliteDatabase } from '@graphit/storage';
       import { MemoryService } from '@graphit/memory';
       import { CodeGraphService } from '@graphit/codegraph';
       const store = new EventStore(process.argv[1]);
       new MemoryService(store); new CodeGraphService(store);
       store.checkpoint(process.argv[2], 'acknowledged');
+      ${stage === 'event append' ? `
+        const prepare = SqliteDatabase.prototype.prepare;
+        SqliteDatabase.prototype.prepare = function(sql) {
+          const statement = prepare.call(this, sql);
+          if (sql.startsWith('INSERT INTO events')) {
+            const run = statement.run;
+            statement.run = (...args) => { const result = run(...args); ${pause} return result; };
+          }
+          return statement;
+        };
+        store.checkpoint(process.argv[2], 'interrupted-before-projection');
+      ` : ''}
       ${stage === 'transaction' ? `store.withProjectTransaction(process.argv[2], tx => { store.checkpoint(process.argv[2], 'uncommitted'); tx.putSourceBlob(new Uint8Array([99])); ${pause} });` : pause}
     `, f.root, [f.path, f.id]);
     expect(existsSync(f.path + '-wal')).toBe(true);
