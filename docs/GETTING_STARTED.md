@@ -1,6 +1,6 @@
 # Getting started
 
-Use Node.js 22.13+ on a local disk. Version 0.1.0 is packaged but not published. The npm name `graphit` belongs to an existing package; install this release from its local tarball, not the registry name.
+Use Node.js 22.0.0 or newer on a local disk. Windows x64 / Node 22.17 is locally verified; macOS/Linux and other supported Node versions remain unverified here. Version 0.1.0 is packaged but not published. The npm name `graphit` belongs to an existing package; install this release from its local tarball, not the registry name.
 
 ```sh
 npm install -g ./graphit-0.1.0.tgz

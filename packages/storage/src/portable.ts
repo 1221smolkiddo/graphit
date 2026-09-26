@@ -1,4 +1,6 @@
 import { createReadStream, createWriteStream } from 'node:fs';
+import { link, unlink, open } from 'node:fs/promises';
+import { randomUUID } from 'node:crypto';
 import { pipeline } from 'node:stream/promises';
 import { createGzip, createGunzip } from 'node:zlib';
 import { Readable, Writable } from 'node:stream';
@@ -107,7 +109,19 @@ export async function exportProject(database: SqliteDatabase, projectId: string,
     body = MAGIC + '\n' + [{ type: 'manifest', data: manifest }, ...records].map(canonicalJson).join('\n') + '\n';
     validateExport(body);
   } finally { database.exec('RELEASE graphit_export'); }
-  await pipeline(Readable.from([body]), createGzip({ level: 9 }), createWriteStream(outputPath, { flags: 'wx', mode: 0o600 }));
+  // Same-directory temporary file: a killed writer never exposes a partial
+  // archive under the requested name. Hard-link publication is atomic and
+  // no-clobber; unsupported filesystems fail visibly instead of copying.
+  const temporary = outputPath + '.' + randomUUID() + '.partial';
+  try {
+    await pipeline(Readable.from([body]), createGzip({ level: 9 }), createWriteStream(temporary, { flags: 'wx', mode: 0o600 }));
+    validateExport(await readExportFile(temporary));
+    const file = await open(temporary, 'r+');
+    try { await file.sync(); } finally { await file.close(); }
+    await link(temporary, outputPath);
+  } finally {
+    await unlink(temporary).catch((error: NodeJS.ErrnoException) => { if (error.code !== 'ENOENT') throw error; });
+  }
   return manifest;
 }
 

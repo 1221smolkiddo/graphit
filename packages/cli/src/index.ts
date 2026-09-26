@@ -4,6 +4,7 @@ import { basename, dirname, join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { EventStore, readExportFile, validateExport } from '@graphit/storage';
 import type { ProjectState } from '@graphit/core';
+import { requireSupportedNode } from '@graphit/core';
 import { MemoryService, entityTypeSchema, statusSchema } from '@graphit/memory';
 import { CodeGraphService } from '@graphit/codegraph';
 import { createParserRegistry, RepositoryIndexer } from '@graphit/indexer';
@@ -43,6 +44,7 @@ const usage = `Graphit ${GRAPHIT_VERSION} — local project memory, code intelli
   graphit mcp doctor [--project <path-or-id>] [--json]
   graphit mcp config [--json]
   graphit doctor [--json]
+  graphit repair [--json]
   graphit export <output>
   graphit import <file>
 
@@ -66,15 +68,7 @@ function requiredProject(store: EventStore, root: string): ProjectState {
   return state;
 }
 
-function checkNodeVersion(): void {
-  const [major, minor] = process.versions.node.split('.').map(Number);
-  if (major === undefined || major < 22 || (major === 22 && (minor ?? 0) < 13)) {
-    throw new Error(`Graphit requires Node.js >= 22.13.0 (current: ${process.version})`);
-  }
-}
-
 async function main(): Promise<void> {
-  checkNodeVersion();
   const { values, positionals } = parseArgs({
     allowPositionals: true,
     strict: true,
@@ -113,6 +107,7 @@ async function main(): Promise<void> {
     checkpoint: { positionalCount: 1, options: ['name'] }, resume: { positionalCount: 1, options: ['checkpoint'] },
     handoff: { positionalCount: 1, options: [] },
     doctor: { positionalCount: 1, options: [] },
+    repair: { positionalCount: 1, options: [] },
     export: { positionalCount: 2, options: [] },
     import: { positionalCount: 2, options: [] },
     'session start': { positionalCount: 2, options: ['provider', 'agent', 'model', 'external-session-id', 'client'] },
@@ -145,6 +140,7 @@ async function main(): Promise<void> {
     if (result.errors.length) process.exitCode = 1;
     return;
   }
+  requireSupportedNode();
   if (command === 'mcp') {
     if (route === 'mcp config') {
       const cwd = realpathSync(resolve(process.cwd()));
@@ -223,8 +219,15 @@ The server discovers .graphit/graphit.db from the working directory.`);
   try {
     const memory = new MemoryService(store);
     const graph = new CodeGraphService(store);
-    const registry = ['index','code','retrieve','context'].includes(command ?? '') || route === 'memory link' ? await createParserRegistry() : undefined;
+    const registry = ['index','code','retrieve','context','repair'].includes(command ?? '') || route === 'memory link' ? await createParserRegistry() : undefined;
     if (registry) graph.setParserRegistry(registry);
+    if (command === 'repair') {
+      requiredProject(store, root);
+      const retrieval = new RetrievalService(store, memory, graph);
+      const result = store.repairDerived(id => retrieval.rebuildSearchProjection(id));
+      console.log(values.json ? JSON.stringify(result, null, 2) : 'Rebuilt derived state. Canonical events and source blobs unchanged.');
+      return;
+    }
     if (command === 'index' && !store.findProject(root)) store.initializeProject(root, basename(root) || 'project');
     // Export command
     if (command === 'export') {

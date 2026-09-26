@@ -1,7 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import { resolve, dirname, join } from 'node:path';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, statSync } from 'node:fs';
 import { SqliteDatabase } from './sqlite.js';
+import { recoveryGuidance } from './sqlite.js';
 export { SqliteDatabase } from './sqlite.js';
 import {
   applyEvent, canonicalJson, contentHash, createEvent, reconstructState, verifyEvent,
@@ -14,7 +15,7 @@ export { readSourceBlob, type SourceBlob } from './blobs.js';
 import { ensureSearchProjection, searchProjection, type SearchDocuments, type SearchHit } from './search.js';
 export type { SearchDocuments, SearchHit } from './search.js';
 
-export { migrate, migrations, type Migration } from './migrations.js';
+export { migrate, migrations, assertSchemaObjects, type Migration } from './migrations.js';
 import { exportProject, importProject } from './portable.js';
 export { exportProject, importProject, readExportFile, validateExport } from './portable.js';
 
@@ -60,6 +61,7 @@ export class EventStore {
   constructor(path: string, options: StoreOptions = {}) {
     this.#path = resolve(path);
     this.#clock = options.clock ?? (() => new Date().toISOString());
+    if (existsSync(path) && statSync(path).size === 0) throw new Error(`Empty existing database; refusing to recreate it. ${recoveryGuidance}`);
     this.#database = new SqliteDatabase(path);
     try {
       this.#database.exec('PRAGMA busy_timeout = 5000; PRAGMA foreign_keys = ON; PRAGMA recursive_triggers = ON;');
@@ -69,7 +71,7 @@ export class EventStore {
       migrate(this.#database);
     } catch (error) {
       this.#database.close();
-      throw error;
+      throw new Error(`${error instanceof Error ? error.message : String(error)}. ${recoveryGuidance}`, { cause: error });
     }
   }
 
@@ -339,6 +341,29 @@ export class EventStore {
       const session = state.sessions.find((item) => item.id === session_id);
       if (!session) throw new Error('Session reconstruction failed');
       return { session, checkpoint, checkpoint_state, state };
+    });
+  }
+
+  /** Repair disposable projections in one transaction without touching events. */
+  repairDerived(rebuildSearch: (projectId: string) => unknown): { projects_repaired: number; canonical_unchanged: true } {
+    return this.#transaction(() => {
+      const snapshot = () => contentHash({
+        events: this.#database.prepare('SELECT * FROM events ORDER BY project_id, sequence').all(),
+        blobs: this.#database.prepare('SELECT content_hash, byte_length, created_at, hex(content) AS bytes FROM source_blobs ORDER BY content_hash').all(),
+      });
+      const before = snapshot();
+      const states = this.listProjects();
+      for (const row of this.#database.prepare('SELECT content_hash FROM source_blobs').all()) readSourceBlob(this.#database, String(row.content_hash));
+      for (const state of states) for (const event of this.readEvents(state.project!.id)) {
+        if ((event.event_type.startsWith('memory.') || event.event_type.startsWith('code.')) &&
+          ![...this.#projections.values()].some(projection => projection.eventTypes.includes(event.event_type))) throw new Error('Repair requires all projection handlers');
+        if (event.event_type === 'code.file.observed' &&
+          readSourceBlob(this.#database, String(event.payload.content_hash)).byte_length !== event.payload.byte_length) throw new Error('Source observation size mismatch');
+      }
+      this.rebuildProjections();
+      for (const state of states) if (rebuildSearch(state.project!.id) instanceof Promise) throw new Error('Repair must be synchronous');
+      if (snapshot() !== before) throw new Error('Repair attempted to change canonical history');
+      return { projects_repaired: states.length, canonical_unchanged: true };
     });
   }
 

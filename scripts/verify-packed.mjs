@@ -7,6 +7,7 @@ import { Buffer } from 'node:buffer';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { Client } from '@modelcontextprotocol/client';
 import { StdioClientTransport } from '@modelcontextprotocol/client/stdio';
 
@@ -14,7 +15,7 @@ const archive = realpathSync(resolve(process.argv[2] ?? 'graphit-0.1.0.tgz'));
 const sandbox = mkdtempSync(join(tmpdir(), 'graphit-packed-'));
 const clients = new Set();
 const serverLogs = [];
-const env = { ...process.env }; delete env.NODE_PATH; delete env.NODE_OPTIONS;
+const env = { ...process.env }; delete env.NODE_PATH; delete env.NODE_OPTIONS; delete env.NODE_NO_WARNINGS;
 const prefix = join(sandbox, 'prefix');
 const project = join(sandbox, 'project');
 const imported = join(sandbox, 'imported');
@@ -57,14 +58,26 @@ try {
   assert.equal(version.trim(), 'graphit 0.1.0');
   assert.ok(run(sandbox, '--help').includes('graphit export'));
   assert.ok(run(sandbox, 'doctor').includes('project_initialized: false'));
+  // Exercise the installed native loader's source-build-required branch without
+  // changing installed binaries or pretending a native compilation succeeded.
+  const missingNative = spawnSync(process.execPath, ['--input-type=module', '-e', `
+    import fs from 'node:fs';
+    const exists = fs.existsSync;
+    fs.existsSync = path => String(path).includes('prebuilds') ? false : exists(path);
+    process.argv = [process.execPath, 'doctor', '--json'];
+    await import(${JSON.stringify(pathToFileURL(cli).href)});
+  `], { cwd: sandbox, env, encoding: 'utf8' });
+  assert.equal(missingNative.status, 1, missingNative.stderr);
+  assert.ok(JSON.parse(missingNative.stdout).errors.join(' ').includes('C++ toolchain and Python'));
   mkdirSync(project); mkdirSync(imported);
   writeFileSync(join(project, 'example.ts'), 'export function greet(name: string) { return `Hello ${name}`; }\nexport function main() { return greet("World"); }\n');
-  run(project, 'init', '--name', 'SQLite Production Test');
+  run(project, 'init', '--name', 'Recovery Test');
   run(project, 'index', '.');
   const stats = JSON.parse(run(project, 'code', 'stats', '--json')); assert.ok(stats.symbols > 0 && stats.edges > 0);
   const context = JSON.parse(run(project, 'context', 'explain this project', '--tokens', '1500', '--json'));
   assert.equal(context.budget.budget_insufficient, false); assert.ok(context.budget.estimated_tokens <= 1500);
   run(project, 'handoff'); run(project, 'mcp', 'doctor');
+  assert.equal(JSON.parse(run(project, 'repair', '--json')).canonical_unchanged, true);
   const a = await connect(project, 'anthropic', 'claude-code');
   assert.equal((await a.client.listTools()).tools.length, 13);
   assert.equal((await a.client.listResources()).resources.length, 3);
@@ -104,6 +117,7 @@ try {
     isolated_prefix: true, runtime_workspace_dependency: false, tree_sitter: 'passed', migrations: 'passed',
     export_import: 'passed', doctor: 'passed', mcp_stdio: 'passed', tools: 13, resources: 3,
     experimental_warning: false, journal_mode: doctor.journal_mode, fts5_bm25: 'passed',
+    native_prebuild: 'passed', missing_native_guidance: 'passed', derived_repair: 'passed',
     provider_a_exited: true, provider_b_continued: true, handoff_bytes: Buffer.byteLength(JSON.stringify(handoff)),
     context_bytes: Buffer.byteLength(JSON.stringify(packet)), estimated_tokens: packet.budget.estimated_tokens,
     requested_tokens: 2000, required_evidence_retained: '4/4' }, null, 2));

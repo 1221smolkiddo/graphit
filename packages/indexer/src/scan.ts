@@ -29,6 +29,9 @@ export function scanRepository(rootPath: string, ignoreNames: readonly string[] 
     entries.sort((a, b) => a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
     for (const entry of entries) {
       if (ignores.has(entry.name)) continue;
+      // A literal backslash is legal in a POSIX filename, but normalizing it
+      // would alias a different canonical repository path.
+      if (entry.name.includes('\\')) { result.errors.push({ path: '.', message: 'Filename containing a literal backslash cannot be represented safely; skipped' }); continue; }
       const absolutePath = join(directory, entry.name);
       const path = normalizePath(relative(root, absolutePath));
       try {

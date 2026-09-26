@@ -17,10 +17,27 @@ export const migrations: readonly Migration[] = [
   { version: 4, name: 'retrieval', sql: readFileSync(new URL('./migrations/004_retrieval.sql', import.meta.url), 'utf8') },
 ];
 
+/** Read-only schema/ledger consistency check; no repairs or implicit DDL. */
+export function assertSchemaObjects(database: SqliteDatabase, appliedCount: number, definitions: readonly Migration[] = migrations): void {
+  const objects = database.prepare("SELECT name, type FROM sqlite_schema").all();
+  for (const [index, definition] of definitions.entries()) {
+    for (const match of definition.sql.matchAll(/CREATE\s+(?:VIRTUAL\s+)?(TABLE|TRIGGER|INDEX)\s+(\w+)/gi)) {
+      const exists = objects.some(object => object.name === match[2] && object.type === match[1]!.toLowerCase());
+      if (index < appliedCount && !exists) throw new Error(`Missing schema object ${match[2]}; migration inconsistency`);
+      if (index >= appliedCount && exists) throw new Error(`Partially applied migration: unrecorded schema object ${match[2]}`);
+    }
+  }
+}
+
 /** The ledger is the only bootstrap table; domain DDL lives in numbered migrations. */
 export function migrate(database: SqliteDatabase, definitions: readonly Migration[] = migrations): void {
+  if (definitions.some((definition, index) => definition.version !== index + 1)) throw new Error('Migrations must be contiguous and ordered');
   database.exec('BEGIN IMMEDIATE');
   try {
+    const health = database.prepare('PRAGMA integrity_check').all();
+    if (health.length !== 1 || health[0]?.integrity_check !== 'ok') throw new Error('SQLite integrity check failed; migration refused');
+    const objects = database.prepare("SELECT name, type FROM sqlite_schema WHERE name NOT LIKE 'sqlite_%'").all();
+    if (objects.length && !objects.some(row => row.name === 'schema_migrations')) throw new Error('Missing migration ledger; refusing to initialize an existing database');
     database.exec(`CREATE TABLE IF NOT EXISTS schema_migrations (
       version INTEGER PRIMARY KEY NOT NULL,
       name TEXT NOT NULL,
@@ -29,6 +46,14 @@ export function migrate(database: SqliteDatabase, definitions: readonly Migratio
     ) STRICT`);
     const applied = database.prepare('SELECT version, name, checksum FROM schema_migrations ORDER BY version').all();
     if (applied.length > definitions.length) throw new Error('Database schema is newer than this Graphit version');
+    if (applied.some(row => Number(row.version) > definitions.length)) throw new Error('Database schema is newer than this Graphit version');
+    // Check objects promised by already-applied SQL before any new DDL. An
+    // incomplete ledger or missing table/trigger must never be "fixed" by init.
+    for (const [index, row] of applied.entries()) {
+      const definition = definitions[index];
+      if (!definition || row.version !== definition.version || row.name !== definition.name || row.checksum !== sha256(definition.sql)) throw new Error('Migration ledger integrity check failed');
+    }
+    assertSchemaObjects(database, applied.length, definitions);
     for (const [index, migration] of definitions.entries()) {
       if (migration.version !== index + 1) throw new Error('Migrations must be contiguous and ordered');
       const checksum = sha256(migration.sql);

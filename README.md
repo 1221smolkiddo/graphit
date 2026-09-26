@@ -1,10 +1,10 @@
 # Graphit
 
-Graphit is local project memory and code intelligence for coding agents. It preserves immutable events and source evidence, then derives a code graph, durable memory, provider-neutral handoff and token-budgeted context. Version **0.1.0**, P5.
+Graphit is local project memory and code intelligence for coding agents. It preserves immutable events and source evidence, then derives a code graph, durable memory, provider-neutral handoff and token-budgeted context. Version **0.1.0**, through P6B.
 
 ## Install
 
-Requires Node.js **22.13+** and a local filesystem suitable for SQLite WAL. Git is optional for commit metadata.
+Requires Node.js **22.0.0 or newer** and a local filesystem suitable for SQLite WAL. The package engine, CLI/storage checks and doctor use the same policy. Git is optional for commit metadata.
 
 This build is **not published**. The requested name `graphit` is already registered on npm to another maintainer; `npm install -g graphit` currently installs that other package. Until ownership/name and repository metadata are settled, install the verified local tarball:
 
@@ -78,4 +78,10 @@ node examples/context-demo.mjs
 
 The packed-install check runs outside the workspace and exercises real stdio clients, full provider restart, preserved evidence and export/import. Windows/Node 22.17 is the tested release environment; other supported platforms still need CI coverage. SQLite uses the stable native `better-sqlite3` driver, without Node's experimental SQLite runtime. The pinned driver ships platform-specific native binaries; a compatible binary is required, or a manual native build on unsupported platforms. Existing project databases retain their schema, migration ledger and canonical evidence.
 
-Synchronous replay favors correctness over very large histories. Dynamic calls and ambiguous imports may remain unresolved. Hashes detect corruption, not malicious re-signing by someone with full filesystem access. Imports are limited to 256 MiB uncompressed; no archive merge or encryption. No VS Code extension, UI, website, cloud sync, embeddings, LLM summaries or private transcript scraping. No P6 work is included.
+Windows x64 / Node 22.17 is locally verified. macOS and Linux x64/arm64 are intended targets with native prebuilds, but have not been executed in this verification environment. Other Node versions allowed by the engine are not a tested matrix. The clean-prefix smoke script is portable and can be run manually on each target; no CI or publication is configured.
+
+Before upgrading, export a backup or stop all writers and preserve the entire `.graphit` directory, including WAL/SHM files. Existing P0–P6A schemas use normal checksummed migrations without canonical conversion. Inconsistent ledgers, missing schema objects and physical corruption fail closed.
+
+`graphit doctor --json` diagnoses without repair. For stale derived rows, stop other writers, back up, then run `graphit repair --json` and doctor again. Repair atomically rebuilds project/session/checkpoint, memory, code and retrieval projections for all projects in the local database; events/blobs must remain unchanged. Interrupted indexing requires `graphit index . --rebuild`. Canonical damage or missing schema tables requires recovery from a verified backup into a new directory, never deleting the original. See [recovery details](docs/DATA_PRESERVATION.md).
+
+Synchronous replay and startup integrity checking favor correctness over very large histories. Dynamic calls and ambiguous imports may remain unresolved. Hashes detect corruption, not malicious re-signing by someone with full filesystem access. Imports are limited to 256 MiB uncompressed; no archive merge or encryption. No VS Code extension, UI, website, cloud sync, embeddings, LLM summaries or private transcript scraping.

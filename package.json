@@ -25,7 +25,7 @@
     "packages/*"
   ],
   "engines": {
-    "node": ">=22.13.0"
+    "node": ">=22.0.0"
   },
   "bin": {
     "graphit": "dist/cli/index.js"

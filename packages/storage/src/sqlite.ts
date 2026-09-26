@@ -1,4 +1,7 @@
 import Database from 'better-sqlite3';
+import { requireSupportedNode } from '@graphit/core';
+
+export const recoveryGuidance = 'Stop Graphit writers and preserve the entire .graphit directory, including WAL/SHM files. Run graphit doctor. Restore a verified export into a new directory if canonical data is damaged; never delete the original database.';
 
 type Row = Record<string, unknown>;
 
@@ -8,7 +11,15 @@ export class SqliteDatabase {
   readonly #database: Database.Database;
 
   constructor(path: string, options: { readonly?: boolean } = {}) {
-    this.#database = new Database(path, { ...options, timeout: 5000 });
+    requireSupportedNode();
+    try { this.#database = new Database(path, { ...options, timeout: 5000 }); }
+    catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (/native|binding|\.node|dlopen|module_version|prebuild|unsupported platform/i.test(message)) {
+        throw new Error(`Cannot load better-sqlite3 for ${process.platform}/${process.arch}, Node ${process.version}: ${message}. Reinstall Graphit for this platform/architecture. If no prebuilt binary is available, build better-sqlite3 from source with the platform C++ toolchain and Python (see its build-release instructions). No database was replaced.`, { cause: error });
+      }
+      throw new Error(`Cannot open SQLite: ${message}. ${recoveryGuidance}`, { cause: error });
+    }
   }
 
   exec(sql: string): void { this.#database.exec(sql); }

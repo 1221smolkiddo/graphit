@@ -23,6 +23,7 @@
 | `memory resolve <id> [--source-event <id>]` | Append resolution, retain history |
 | `memory link <memory-id> --symbol <symbol-id>` | Explicit memory/code association |
 | `doctor [--json]` | Read-only integrity and projection checks |
+| `repair [--json]` | Transactionally rebuild all local database projections; never change canonical events/blobs |
 | `export <output>` | Create an exclusive checksummed `.graphit` archive; no overwrite |
 | `import <file>` | Validate/import into a clean directory; no merge/overwrite |
 | `mcp [--project <path-or-id>]` | Stdio MCP; optional session metadata flags |

@@ -2,7 +2,8 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { SqliteDatabase } from '@graphit/storage';
 import { canonicalJson, contentHash, reconstructState, sha256, verifyEvent, type GraphEvent } from '@graphit/core';
-import { migrations, readSourceBlob } from '@graphit/storage';
+import { nodeSupported, supportedNodeRange } from '@graphit/core';
+import { migrations, readSourceBlob, assertSchemaObjects } from '@graphit/storage';
 import { replayMemory } from '@graphit/memory';
 import { assembleGraph, logicalSymbolId, replayCodeHistory, validateExtraction, type CodeFile } from '@graphit/codegraph';
 import { createParserRegistry } from '@graphit/indexer';
@@ -11,7 +12,11 @@ import { serverVersion, sdkVersion, toolSchemas } from '@graphit/mcp';
 
 /** No EventStore: opening it would set pragmas/migrate. Every SQL statement here is read-only. */
 export async function inspectProject(root: string | undefined, projectId?: string) {
-  const report = { graphit_version: serverVersion, node_version: process.version, mcp_server_version: serverVersion,
+  const report = { graphit_version: serverVersion, node_version: process.version, node_supported: nodeSupported(), supported_node: supportedNodeRange,
+    platform: process.platform, architecture: process.arch, better_sqlite3_load: false, sqlite_version: null as string | null,
+    integrity_check: 'not checked', migration_status: 'not checked', schema_version: 0, canonical_state_health: 'not checked',
+    recovery_guidance: 'Preserve .graphit including WAL/SHM before recovery. Use graphit repair only for derived rows; restore a verified export into a new directory for canonical damage.',
+    latest_interrupted_operation: null as unknown, mcp_server_version: serverVersion,
     mcp_sdk_version: sdkVersion, mcp_available: Object.keys(toolSchemas).length === 13,
     project_id: null as string | null, handoff_schema_version: '1', context_schema_version: '1',
     project_initialized: false, database_reachable: false, journal_mode: null as string | null,
@@ -19,6 +24,14 @@ export async function inspectProject(root: string | undefined, projectId?: strin
     memory_projection_valid: false, memory_entity_count: 0, source_blob_integrity: 'not checked', source_blob_count: 0,
     code_index_present: false, code_projection_valid: false, retrieval_index_present: false, retrieval_projection_valid: false,
     last_index_status: 'none', latest_index_run: null as unknown, errors: [] as string[], warnings: [] as string[] };
+  if (!report.node_supported) { report.errors.push(`Unsupported Node.js ${process.version}; Graphit requires ${supportedNodeRange}. Upgrade Node and reinstall Graphit.`); return report; }
+  try {
+    const probe = new SqliteDatabase(':memory:');
+    try {
+      report.better_sqlite3_load = true;
+      report.sqlite_version = String(probe.prepare('SELECT sqlite_version() AS version').get()?.version);
+    } finally { probe.close(); }
+  } catch (error) { report.errors.push(String(error)); return report; }
   if (!root || !existsSync(join(root, '.graphit', 'graphit.db'))) { report.warnings.push('Not initialized; run graphit init'); return report; }
   let db: SqliteDatabase | undefined;
   try {
@@ -26,13 +39,32 @@ export async function inspectProject(root: string | undefined, projectId?: strin
     const database = db;
     database.exec('BEGIN'); // One consistent WAL read snapshot; no repairs or checkpoints.
     report.database_reachable = true;
+    report.integrity_check = 'failed';
+    const integrity = database.prepare('PRAGMA integrity_check').all();
+    if (integrity.length !== 1 || integrity[0]?.integrity_check !== 'ok') throw new Error('SQLite integrity check failed; preserve database and recover from a verified backup');
+    report.integrity_check = 'ok';
     report.journal_mode = String(database.prepare('PRAGMA journal_mode').get()?.journal_mode);
     if (report.journal_mode !== 'wal') report.errors.push('Database must use WAL');
     const ledger = database.prepare('SELECT version, name, checksum FROM schema_migrations ORDER BY version').all();
     report.schema_versions = ledger.map((item) => ({ version: Number(item.version), name: String(item.name) }));
-    report.schema_valid = ledger.length === migrations.length && ledger.every((item, index) => item.version === migrations[index]!.version && item.name === migrations[index]!.name && item.checksum === sha256(migrations[index]!.sql));
-    if (!report.schema_valid) throw new Error('Migration ledger mismatch; doctor will not migrate or repair it');
-    if (database.prepare('PRAGMA integrity_check').all().some((item) => item.integrity_check !== 'ok')) report.errors.push('SQLite integrity check failed');
+    report.schema_version = Number(ledger.at(-1)?.version ?? 0);
+    report.migration_status = 'inconsistent';
+    const validPrefix = ledger.length > 0 && ledger.length <= migrations.length && ledger.every((item, index) => item.version === migrations[index]!.version && item.name === migrations[index]!.name && item.checksum === sha256(migrations[index]!.sql));
+    let schemaObjectsValid = true;
+    if (validPrefix) {
+      try { assertSchemaObjects(database, ledger.length); }
+      catch (error) { schemaObjectsValid = false; report.errors.push(String(error)); }
+    }
+    if (validPrefix && ledger.length < migrations.length) {
+      if (!schemaObjectsValid) return report;
+      report.migration_status = 'upgrade required';
+      report.errors.push('Recognized older schema; back up .graphit, then run graphit status to apply normal migrations. Doctor does not migrate.');
+      return report;
+    }
+    report.schema_valid = validPrefix && ledger.length === migrations.length && schemaObjectsValid;
+    if (!validPrefix) throw new Error('Migration ledger mismatch; doctor will not migrate or repair it');
+    report.migration_status = schemaObjectsValid ? 'current' : 'inconsistent';
+    report.canonical_state_health = 'failed';
     const events = database.prepare('SELECT * FROM events ORDER BY project_id, sequence').all().map((row) => {
       const event = verifyEvent({ ...row, payload: JSON.parse(String(row.payload)) as unknown });
       if (row.payload !== canonicalJson(event.payload)) throw new Error('Non-canonical stored event');
@@ -69,6 +101,9 @@ export async function inspectProject(root: string | undefined, projectId?: strin
       report.source_blob_integrity = 'ok';
     });
     const codeHistory = replayCodeHistory(history);
+    report.canonical_state_health = report.source_blob_integrity === 'ok' ? 'ok' : 'failed';
+    report.latest_interrupted_operation = codeHistory.runs.find(run => run.status === 'running') ?? null;
+    if (report.latest_interrupted_operation) report.warnings.push('Unfinished index run detected; stop other writers, then run graphit index . --rebuild');
     report.latest_index_run = codeHistory.runs.at(-1) ?? null;
     report.last_index_status = codeHistory.runs.at(-1)?.status ?? 'none';
     report.code_index_present = codeHistory.runs.some((run) => run.status === 'completed');

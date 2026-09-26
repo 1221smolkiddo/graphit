@@ -217,3 +217,4 @@ export function applyEvent(previous: ProjectState, input: unknown): ProjectState
 export function reconstructState(events: readonly unknown[]): ProjectState {
   return events.reduce<ProjectState>(applyEvent, emptyState());
 }
+export { nodeSupported, requireSupportedNode, supportedNodeRange } from './runtime.js';
