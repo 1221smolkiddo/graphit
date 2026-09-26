@@ -1,0 +1,241 @@
+{
+  "schema_version": "1",
+  "project": {
+    "id": "260152cb-1878-4054-b7c0-7b42ad002f1c",
+    "name": "Graphit example",
+    "root_path": "C:\\example\\graphit",
+    "created_at": "2026-09-26T00:00:00.000Z"
+  },
+  "generated_at": "2026-09-26T00:00:00.000Z",
+  "current_session": {
+    "id": "4daae7eb-063b-41ce-86b9-ca4f8be602ca",
+    "project_id": "260152cb-1878-4054-b7c0-7b42ad002f1c",
+    "created_at": "2026-09-26T00:00:00.000Z",
+    "resumed_from_checkpoint_id": null,
+    "provider": "provider-b",
+    "agent_name": "agent-b"
+  },
+  "goals": [
+    {
+      "id": "78e95085780db53e0398b26d94b057f20b1cbef5242f52a12f278c98c71a4bd1",
+      "project_id": "260152cb-1878-4054-b7c0-7b42ad002f1c",
+      "entity_type": "goal",
+      "content": "Build durable project memory",
+      "status": "active",
+      "created_at": "2026-09-26T00:00:00.000Z",
+      "source_event_ids": [
+        "08ecd2293602699b22de7bb99f3642cbca1ef275ccbdf5d4f06011ff457ffc58",
+        "b5d66868d5485ba21536ae17b968cb3dd920cf1374faf1c6975f9b03aac22518"
+      ],
+      "created_by_session_id": "ed767f3a-8d5c-4e6e-9678-88884449b7a2",
+      "valid_from_sequence": 5,
+      "valid_to_sequence": null,
+      "superseded_by": null,
+      "metadata": {}
+    }
+  ],
+  "active_tasks": [
+    {
+      "id": "54db69afac53818056bf9db1cb10a390ee438727fdc708fdb2bc19cb284b2faf",
+      "project_id": "260152cb-1878-4054-b7c0-7b42ad002f1c",
+      "entity_type": "task",
+      "content": "Add provider-neutral handoff tests",
+      "status": "active",
+      "created_at": "2026-09-26T00:00:00.000Z",
+      "source_event_ids": [
+        "5c093c14184697ea96c4519239a40f1e8501b072a3ca0bfe52935ce17ae33e8d",
+        "b5d66868d5485ba21536ae17b968cb3dd920cf1374faf1c6975f9b03aac22518"
+      ],
+      "created_by_session_id": "ed767f3a-8d5c-4e6e-9678-88884449b7a2",
+      "valid_from_sequence": 7,
+      "valid_to_sequence": null,
+      "superseded_by": null,
+      "metadata": {}
+    }
+  ],
+  "completed_tasks": [],
+  "decisions": [
+    {
+      "id": "71962f30da7a4fa8f978ca51a16b0c5217caaefee2890f75025d8a76e36816c3",
+      "project_id": "260152cb-1878-4054-b7c0-7b42ad002f1c",
+      "entity_type": "decision",
+      "content": "Use SQLite for local persistence",
+      "status": "active",
+      "created_at": "2026-09-26T00:00:00.000Z",
+      "source_event_ids": [
+        "653d64eebdaa0ce5fe098bbfe208d1b4d29f0d4bab91973bd2b662f6ba560608",
+        "b5d66868d5485ba21536ae17b968cb3dd920cf1374faf1c6975f9b03aac22518"
+      ],
+      "created_by_session_id": "ed767f3a-8d5c-4e6e-9678-88884449b7a2",
+      "valid_from_sequence": 6,
+      "valid_to_sequence": null,
+      "superseded_by": null,
+      "metadata": {}
+    }
+  ],
+  "constraints": [],
+  "blockers": [],
+  "open_questions": [],
+  "actions": [],
+  "recent_results": [
+    {
+      "id": "096a69cd1386c5a363169c563e69426e6242168bbd84dc31e22a476d2c93cbf0",
+      "project_id": "260152cb-1878-4054-b7c0-7b42ad002f1c",
+      "entity_type": "result",
+      "content": "P0 baseline tests pass",
+      "status": "active",
+      "created_at": "2026-09-26T00:00:00.000Z",
+      "source_event_ids": [
+        "b5d66868d5485ba21536ae17b968cb3dd920cf1374faf1c6975f9b03aac22518",
+        "f7b3554b32721119723047169012e573d735cca06a2b4cc7069c037465e2c333"
+      ],
+      "created_by_session_id": "ed767f3a-8d5c-4e6e-9678-88884449b7a2",
+      "valid_from_sequence": 8,
+      "valid_to_sequence": null,
+      "superseded_by": null,
+      "metadata": {}
+    }
+  ],
+  "artifacts": [],
+  "history": [],
+  "relations": [],
+  "evidence": [
+    {
+      "project_id": "260152cb-1878-4054-b7c0-7b42ad002f1c",
+      "session_id": "a087e05b-37ba-4c0b-84ea-3e6d55ba8964",
+      "sequence": 1,
+      "created_at": "2026-09-26T00:00:00.000Z",
+      "event_type": "project.created",
+      "payload": {
+        "name": "Graphit example",
+        "root_path": "C:\\example\\graphit"
+      },
+      "id": "8941ccfa5291374a7e4ccca200632de2205b323797257058a73e62c154799ecb",
+      "content_hash": "a1ca9303b03a9df6238f8dfaa98b60cc697f02cafde0105abb27ccd1030a6c63"
+    },
+    {
+      "project_id": "260152cb-1878-4054-b7c0-7b42ad002f1c",
+      "session_id": "a087e05b-37ba-4c0b-84ea-3e6d55ba8964",
+      "sequence": 2,
+      "created_at": "2026-09-26T00:00:00.000Z",
+      "event_type": "session.started",
+      "payload": {},
+      "id": "fcd9334c8c6032be478bf2428901482a44fcec938e05b25ac430f977ba15f7af",
+      "content_hash": "8bd0c3c8537bfc8f1fe05d1403a7d7cc260938f758d65757f25f44f205fd980e"
+    },
+    {
+      "project_id": "260152cb-1878-4054-b7c0-7b42ad002f1c",
+      "session_id": "ed767f3a-8d5c-4e6e-9678-88884449b7a2",
+      "sequence": 3,
+      "created_at": "2026-09-26T00:00:00.000Z",
+      "event_type": "session.started",
+      "payload": {
+        "provider": "provider-a",
+        "agent_name": "agent-a"
+      },
+      "id": "36c6098b914c1ab428a255f1cb804340d23d13ec407bfa33f4c9722afc03cea5",
+      "content_hash": "5c531e39c7770bef3ac1891f723c54d87c12ce95d03addc3ecc52d51bb6c7b40"
+    },
+    {
+      "project_id": "260152cb-1878-4054-b7c0-7b42ad002f1c",
+      "session_id": "ed767f3a-8d5c-4e6e-9678-88884449b7a2",
+      "sequence": 4,
+      "created_at": "2026-09-26T00:00:00.000Z",
+      "event_type": "conversation.user_message",
+      "payload": {
+        "content": "Build durable local memory using SQLite, add handoff tests, and preserve the passing P0 baseline."
+      },
+      "id": "b5d66868d5485ba21536ae17b968cb3dd920cf1374faf1c6975f9b03aac22518",
+      "content_hash": "d70f0ea2228bad3d776e837cd284cfe8f1cd56003ae77f42f372fc3a52ab3fa5"
+    },
+    {
+      "project_id": "260152cb-1878-4054-b7c0-7b42ad002f1c",
+      "session_id": "ed767f3a-8d5c-4e6e-9678-88884449b7a2",
+      "sequence": 5,
+      "created_at": "2026-09-26T00:00:00.000Z",
+      "event_type": "memory.entity.created",
+      "payload": {
+        "entity_id": "78e95085780db53e0398b26d94b057f20b1cbef5242f52a12f278c98c71a4bd1",
+        "entity_type": "goal",
+        "content": "Build durable project memory",
+        "source_event_ids": [
+          "b5d66868d5485ba21536ae17b968cb3dd920cf1374faf1c6975f9b03aac22518"
+        ],
+        "metadata": {}
+      },
+      "id": "08ecd2293602699b22de7bb99f3642cbca1ef275ccbdf5d4f06011ff457ffc58",
+      "content_hash": "7045846fc647b266a507c2f7baf2497913b065989038ec096240c4bc2cad0cf4"
+    },
+    {
+      "project_id": "260152cb-1878-4054-b7c0-7b42ad002f1c",
+      "session_id": "ed767f3a-8d5c-4e6e-9678-88884449b7a2",
+      "sequence": 6,
+      "created_at": "2026-09-26T00:00:00.000Z",
+      "event_type": "memory.entity.created",
+      "payload": {
+        "entity_id": "71962f30da7a4fa8f978ca51a16b0c5217caaefee2890f75025d8a76e36816c3",
+        "entity_type": "decision",
+        "content": "Use SQLite for local persistence",
+        "source_event_ids": [
+          "b5d66868d5485ba21536ae17b968cb3dd920cf1374faf1c6975f9b03aac22518"
+        ],
+        "metadata": {}
+      },
+      "id": "653d64eebdaa0ce5fe098bbfe208d1b4d29f0d4bab91973bd2b662f6ba560608",
+      "content_hash": "0302fa764c21d6021af77613b4c85164da9317dd57b58cb04046e0520f9e7bb1"
+    },
+    {
+      "project_id": "260152cb-1878-4054-b7c0-7b42ad002f1c",
+      "session_id": "ed767f3a-8d5c-4e6e-9678-88884449b7a2",
+      "sequence": 7,
+      "created_at": "2026-09-26T00:00:00.000Z",
+      "event_type": "memory.entity.created",
+      "payload": {
+        "entity_id": "54db69afac53818056bf9db1cb10a390ee438727fdc708fdb2bc19cb284b2faf",
+        "entity_type": "task",
+        "content": "Add provider-neutral handoff tests",
+        "source_event_ids": [
+          "b5d66868d5485ba21536ae17b968cb3dd920cf1374faf1c6975f9b03aac22518"
+        ],
+        "metadata": {}
+      },
+      "id": "5c093c14184697ea96c4519239a40f1e8501b072a3ca0bfe52935ce17ae33e8d",
+      "content_hash": "791b73f131fd88c52048f14064bec13b5d10d3120e7057cba21d8d6c7d000a27"
+    },
+    {
+      "project_id": "260152cb-1878-4054-b7c0-7b42ad002f1c",
+      "session_id": "ed767f3a-8d5c-4e6e-9678-88884449b7a2",
+      "sequence": 8,
+      "created_at": "2026-09-26T00:00:00.000Z",
+      "event_type": "memory.entity.created",
+      "payload": {
+        "entity_id": "096a69cd1386c5a363169c563e69426e6242168bbd84dc31e22a476d2c93cbf0",
+        "entity_type": "result",
+        "content": "P0 baseline tests pass",
+        "source_event_ids": [
+          "b5d66868d5485ba21536ae17b968cb3dd920cf1374faf1c6975f9b03aac22518"
+        ],
+        "metadata": {}
+      },
+      "id": "f7b3554b32721119723047169012e573d735cca06a2b4cc7069c037465e2c333",
+      "content_hash": "458e244d3129f425f2679c88b6825fec3c01df45f42846c07febdce012a0a45e"
+    },
+    {
+      "project_id": "260152cb-1878-4054-b7c0-7b42ad002f1c",
+      "session_id": "4daae7eb-063b-41ce-86b9-ca4f8be602ca",
+      "sequence": 9,
+      "created_at": "2026-09-26T00:00:00.000Z",
+      "event_type": "session.started",
+      "payload": {
+        "provider": "provider-b",
+        "agent_name": "agent-b"
+      },
+      "id": "2cde7592c73f401a957840cbd89dd78a4fd74910d6ede9276f9f30bbb8460b1e",
+      "content_hash": "e5bb271c1c98ec37ab47e87ed58d2349dbd554e47d6bd9c9703e1ed2c77c5fd0"
+    }
+  ],
+  "source_range": {
+    "first_sequence": 1,
+    "last_sequence": 9
+  }
+}

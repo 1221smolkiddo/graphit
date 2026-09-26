@@ -1,11 +1,12 @@
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, mkdirSync, rmSync, existsSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, rmSync, existsSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { Checkpoint, ProjectState } from '@graphit/core';
 import type { ResumeResult } from '@graphit/storage';
+import type { CodeSymbol, IndexRun } from '@graphit/codegraph';
 
 const executable = fileURLToPath(new URL('../dist/index.js', import.meta.url));
 const directories: string[] = [];
@@ -31,6 +32,32 @@ afterEach(() => {
 });
 
 describe('graphit CLI', () => {
+  it('indexes a non-Git repository, disambiguates names and serves preserved source across processes', () => {
+    const root = temporary();
+    writeFileSync(join(root, 'one.ts'), 'export function value(){ return 1; }\nexport function caller(){ return value(); }');
+    writeFileSync(join(root, 'two.ts'), 'export function value(){ return 2; }');
+    const indexed = json<IndexRun>(root, 'index', '.'); expect(indexed.status).toBe('completed'); expect(indexed.files_changed).toBe(2);
+    const symbols = json<{ ambiguous: boolean; candidates: CodeSymbol[] }>(root, 'code', 'symbol', 'value');
+    expect(symbols.ambiguous).toBe(true); expect(symbols.candidates).toHaveLength(2);
+    expect(json<{ ambiguous: boolean; candidates: CodeSymbol[] }>(root, 'code', 'callers', 'value')).toEqual(symbols);
+    const original = symbols.candidates.find((item) => item.path === 'one.ts')!;
+    writeFileSync(join(root, 'one.ts'), 'export function value(){ return 3; }');
+    expect(json<{ content: string }>(root, 'code', 'source', original.logical_symbol_id).content).toContain('return 1');
+    expect(json<unknown[]>(root, 'code', 'callers', original.logical_symbol_id)).toHaveLength(1);
+    expect(json<unknown[]>(root, 'code', 'imports', 'one.ts')).toEqual([]);
+    expect(json<IndexRun>(root, 'index', '.', '--rebuild').status).toBe('completed');
+    expect(json<{ content: string }>(root, 'code', 'source', original.symbol_version_id).content).toContain('return 1');
+    expect(json<{ files: number; last_index_status: string }>(root, 'code', 'stats')).toMatchObject({ files: 2, last_index_status: 'completed' });
+    expect(json<IndexRun>(root, 'index', '.').metrics.files_parsed).toBe(0);
+  }, 30000);
+
+  it('returns an explicit failed index summary and nonzero exit for syntax errors', () => {
+    const root = temporary(); writeFileSync(join(root, 'broken.ts'), 'export function broken( {');
+    const result = run(root, 'index', '.', '--json'); expect(result.status).toBe(1);
+    expect(JSON.parse(String(result.stdout))).toMatchObject({ status: 'failed', parse_errors: 1 });
+    expect(json<{ last_index_status: string; files: number }>(root, 'code', 'stats')).toMatchObject({ last_index_status: 'failed', files: 0 });
+  });
+
   it('runs init → status → checkpoint → resume across separate processes', () => {
     const root = temporary();
     const initial = json<ProjectState>(root, 'init', '--name', 'Example');

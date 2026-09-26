@@ -3,14 +3,35 @@ import { resolve } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import {
   applyEvent, canonicalJson, contentHash, createEvent, reconstructState, verifyEvent,
-  type AppendEventInput, type Checkpoint, type GraphEvent, type ProjectState, type Session,
+  sessionMetadataSchema, type AppendEventInput, type Checkpoint, type EventData, type GraphEvent,
+  type ProjectState, type Session, type SessionMetadata,
 } from '@graphit/core';
 import { migrate } from './migrations.js';
+import { insertSourceBlob, readSourceBlob, type SourceBlob } from './blobs.js';
+export { readSourceBlob, type SourceBlob } from './blobs.js';
 
 export { migrate, migrations, type Migration } from './migrations.js';
 
 export interface StoreOptions {
   clock?: () => string;
+}
+
+export interface EventProjection {
+  name: string;
+  eventTypes: readonly string[];
+  rebuild(database: DatabaseSync, projectId: string, events: readonly GraphEvent[]): void;
+  read(database: DatabaseSync, projectId: string): unknown;
+  onAppend?(database: DatabaseSync, projectId: string, events: readonly GraphEvent[]): void;
+}
+
+export type ProjectAppendInput = EventData & { session_id?: string; created_at?: string };
+export interface ProjectTransaction {
+  readEvents(): GraphEvent[];
+  getState(): ProjectState;
+  append(input: ProjectAppendInput): GraphEvent;
+  rebuildProjection(name: string): unknown;
+  readProjection(name: string): unknown;
+  putSourceBlob(bytes: Uint8Array): SourceBlob;
 }
 
 export interface ResumeResult {
@@ -23,6 +44,7 @@ export interface ResumeResult {
 export class EventStore {
   readonly #database: DatabaseSync;
   readonly #clock: () => string;
+  readonly #projections = new Map<string, EventProjection>();
 
   constructor(path: string, options: StoreOptions = {}) {
     this.#clock = options.clock ?? (() => new Date().toISOString());
@@ -43,16 +65,61 @@ export class EventStore {
     this.#database.close();
   }
 
+  readSourceBlob(hash: string): SourceBlob { return readSourceBlob(this.#database, hash); }
+
+  registerProjection(projection: EventProjection): void {
+    const existing = this.#projections.get(projection.name);
+    if (existing && existing !== projection) throw new Error(`Projection already registered: ${projection.name}`);
+    this.#projections.set(projection.name, projection);
+  }
+
   #transaction<T>(operation: () => T): T {
     this.#database.exec('BEGIN IMMEDIATE');
     try {
       const result = operation();
+      if (result instanceof Promise) throw new Error('Transactions must be synchronous');
       this.#database.exec('COMMIT');
       return result;
     } catch (error) {
       this.#database.exec('ROLLBACK');
       throw error;
     }
+  }
+
+  /** A project-scoped unit of work; sequence allocation and derived writes share its lock. */
+  withProjectTransaction<T>(projectId: string, operation: (transaction: ProjectTransaction) => T): T {
+    return this.#transaction(() => {
+      let active = true;
+      const ensureActive = (): void => { if (!active) throw new Error('Transaction is no longer active'); };
+      const transaction: ProjectTransaction = {
+        putSourceBlob: (bytes) => { ensureActive(); return insertSourceBlob(this.#database, bytes, this.#clock()); },
+        readProjection: (name) => {
+          ensureActive();
+          const projection = this.#projections.get(name);
+          if (!projection) throw new Error(`Projection is not registered: ${name}`);
+          return projection.read(this.#database, projectId);
+        },
+        readEvents: () => { ensureActive(); return this.readEvents(projectId); },
+        getState: () => { ensureActive(); return this.getState(projectId); },
+        append: (input) => {
+          ensureActive();
+          const session_id = input.session_id ?? this.getState(projectId).active_session_id;
+          if (!session_id) throw new Error('Project has no active session');
+          return this.#append({ ...input, project_id: projectId, session_id });
+        },
+        rebuildProjection: (name) => {
+          ensureActive();
+          const projection = this.#projections.get(name);
+          if (!projection) throw new Error(`Projection is not registered: ${name}`);
+          const events = this.readEvents(projectId);
+          if (!reconstructState(events).project) throw new Error('Project does not exist');
+          projection.rebuild(this.#database, projectId, events);
+          return projection.read(this.#database, projectId);
+        },
+      };
+      try { return operation(transaction); }
+      finally { active = false; }
+    });
   }
 
   #decode(row: Record<string, unknown>): GraphEvent {
@@ -103,9 +170,12 @@ export class EventStore {
     this.#database.prepare('DELETE FROM checkpoints WHERE project_id = ?').run(project.id);
     this.#database.prepare('DELETE FROM sessions WHERE project_id = ?').run(project.id);
     const sessionInsert = this.#database.prepare(`INSERT INTO sessions
-      (id, project_id, created_at, resumed_from_checkpoint_id) VALUES (?, ?, ?, ?)`);
+      (id, project_id, created_at, resumed_from_checkpoint_id, provider, agent_name, model_name, external_session_id, client_name)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`);
     for (const session of state.sessions) {
-      sessionInsert.run(session.id, session.project_id, session.created_at, session.resumed_from_checkpoint_id);
+      sessionInsert.run(session.id, session.project_id, session.created_at, session.resumed_from_checkpoint_id,
+        session.provider ?? null, session.agent_name ?? null, session.model_name ?? null,
+        session.external_session_id ?? null, session.client_name ?? null);
     }
     const checkpointInsert = this.#database.prepare(`INSERT INTO checkpoints
       (id, project_id, session_id, name, through_sequence, state_hash, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)`);
@@ -116,8 +186,14 @@ export class EventStore {
   }
 
   #append(input: AppendEventInput): GraphEvent {
-    const previous = reconstructState(this.readEvents(input.project_id));
+    const history = this.readEvents(input.project_id);
+    const previous = reconstructState(history);
     const event = createEvent({ ...input, sequence: previous.last_sequence + 1, created_at: input.created_at ?? this.#clock() });
+    for (const item of [...history, event]) {
+      if ((item.event_type.startsWith('memory.') || item.event_type.startsWith('code.')) && ![...this.#projections.values()].some((projection) => projection.eventTypes.includes(item.event_type))) {
+        throw new Error('Extension writes require the corresponding projection handler');
+      }
+    }
     const state = applyEvent(previous, event);
     this.#database.prepare(`INSERT INTO events
       (id, project_id, session_id, sequence, event_type, payload, created_at, content_hash)
@@ -125,11 +201,24 @@ export class EventStore {
       .run(event.id, event.project_id, event.session_id, event.sequence, event.event_type,
         canonicalJson(event.payload), event.created_at, event.content_hash);
     this.#project(state);
+    for (const projection of this.#projections.values()) {
+      (projection.onAppend ?? projection.rebuild)(this.#database, input.project_id, [...history, event]);
+    }
     return event;
   }
 
   appendEvent(input: AppendEventInput): GraphEvent {
     return this.#transaction(() => this.#append(input));
+  }
+
+  startSession(projectId: string, metadata: SessionMetadata = {}): Session {
+    return this.withProjectTransaction(projectId, (transaction) => {
+      // Preserve absent metadata keys so existing P0 checkpoint hashes remain valid.
+      const payload = sessionMetadataSchema.parse(metadata);
+      const session_id = randomUUID();
+      transaction.append({ event_type: 'session.started', session_id, payload });
+      return transaction.getState().sessions.find((session) => session.id === session_id)!;
+    });
   }
 
   initializeProject(rootPath: string, name: string): ProjectState {
@@ -185,7 +274,12 @@ export class EventStore {
     this.#transaction(() => {
       const states = this.listProjects();
       this.#database.exec('DELETE FROM checkpoints; DELETE FROM sessions; DELETE FROM projects;');
-      for (const state of states) this.#project(state);
+      for (const state of states) {
+        this.#project(state);
+        for (const projection of this.#projections.values()) {
+          projection.rebuild(this.#database, state.project!.id, this.readEvents(state.project!.id));
+        }
+      }
     });
   }
 }

@@ -4,7 +4,10 @@
     "noEmit": true,
     "paths": {
       "@graphit/core": ["./packages/core/src/index.ts"],
-      "@graphit/storage": ["./packages/storage/src/index.ts"]
+      "@graphit/storage": ["./packages/storage/src/index.ts"],
+      "@graphit/memory": ["./packages/memory/src/index.ts"],
+      "@graphit/codegraph": ["./packages/codegraph/src/index.ts"],
+      "@graphit/indexer": ["./packages/indexer/src/index.ts"]
     }
   },
   "include": ["packages/**/*.ts", "vitest.config.ts"],

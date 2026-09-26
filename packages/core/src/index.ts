@@ -1,5 +1,7 @@
 import { createHash } from 'node:crypto';
 import { z } from 'zod';
+import { sessionMetadataSchema, sourcePayloadSchemas, type SessionMetadata, type SourceEventData } from './source-schemas.js';
+export * from './source-schemas.js';
 
 export type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
 
@@ -27,8 +29,8 @@ export function canonicalJson(value: unknown): string {
   return encode(value);
 }
 
-export function sha256(value: string): string {
-  return createHash('sha256').update(value, 'utf8').digest('hex');
+export function sha256(value: string | Uint8Array): string {
+  return createHash('sha256').update(value).digest('hex');
 }
 
 export function contentHash(value: unknown): string {
@@ -40,7 +42,7 @@ export const timestampSchema = z.string().refine((value) => {
   return Number.isFinite(parsed.getTime()) && parsed.toISOString() === value;
 }, 'Expected a canonical UTC ISO timestamp');
 
-const hashSchema = z.string().regex(/^[a-f0-9]{64}$/);
+export const hashSchema = z.string().regex(/^[a-f0-9]{64}$/);
 const idSchema = z.string().uuid();
 const sequenceSchema = z.number().int().positive().max(Number.MAX_SAFE_INTEGER);
 const envelopeSchema = z.object({
@@ -57,7 +59,7 @@ const unsignedEventSchema = z.discriminatedUnion('event_type', [
   }).strict(),
   envelopeSchema.extend({
     event_type: z.literal('session.started'),
-    payload: z.object({}).strict(),
+    payload: sessionMetadataSchema,
   }).strict(),
   envelopeSchema.extend({
     event_type: z.literal('checkpoint.created'),
@@ -65,22 +67,55 @@ const unsignedEventSchema = z.discriminatedUnion('event_type', [
   }).strict(),
   envelopeSchema.extend({
     event_type: z.literal('session.resumed'),
-    payload: z.object({ checkpoint_id: hashSchema }).strict(),
+    payload: sessionMetadataSchema.extend({ checkpoint_id: hashSchema }).strict(),
   }).strict(),
 ]);
 
-export type UnsignedEvent = z.infer<typeof unsignedEventSchema>;
+export const memoryEventTypes = ['memory.entity.created', 'memory.entity.status_changed',
+  'memory.entity.superseded', 'memory.entity.linked'] as const;
+export type MemoryEventType = typeof memoryEventTypes[number];
+export const codeEventTypes = ['code.index.started', 'code.file.observed', 'code.file.deleted', 'code.index.completed', 'code.index.failed'] as const;
+export type CodeEventType = typeof codeEventTypes[number];
+export type ExtensionEventData = { event_type: MemoryEventType | CodeEventType; payload: { [key: string]: JsonValue | undefined } };
+type Envelope = z.infer<typeof envelopeSchema>;
+export type UnsignedEvent = z.infer<typeof unsignedEventSchema> | (Envelope & (SourceEventData | ExtensionEventData));
 export type GraphEvent = UnsignedEvent & { id: string; content_hash: string };
 export type EventType = GraphEvent['event_type'];
+type BaseUnsignedEvent = z.infer<typeof unsignedEventSchema>;
 export type EventData = {
-  [K in EventType]: Pick<Extract<UnsignedEvent, { event_type: K }>, 'event_type' | 'payload'>
-}[EventType];
+  [K in BaseUnsignedEvent['event_type']]: Pick<Extract<BaseUnsignedEvent, { event_type: K }>, 'event_type' | 'payload'>
+}[BaseUnsignedEvent['event_type']] | SourceEventData | ExtensionEventData;
 export type AppendEventInput = EventData & { project_id: string; session_id: string; created_at?: string };
+
+const extensionSchemas = new Map<string, z.ZodType<{ [key: string]: JsonValue | undefined }>>();
+/** Memory owns its schemas; core knows only the immutable envelope. */
+export function registerMemoryEventSchema(type: MemoryEventType, schema: z.ZodType<{ [key: string]: JsonValue }>): void {
+  registerExtensionEventSchema(type, schema);
+}
+
+export function registerExtensionEventSchema(type: MemoryEventType | CodeEventType, schema: z.ZodType<{ [key: string]: JsonValue | undefined }>): void {
+  const existing = extensionSchemas.get(type);
+  if (existing && existing !== schema) throw new Error(`Event schema already registered: ${type}`);
+  extensionSchemas.set(type, schema);
+}
+
+function parseUnsigned(input: unknown): UnsignedEvent {
+  const header = envelopeSchema.extend({ event_type: z.string(), payload: z.unknown() }).strict().parse(input);
+  const sourceSchema = Object.prototype.hasOwnProperty.call(sourcePayloadSchemas, header.event_type)
+    ? sourcePayloadSchemas[header.event_type as keyof typeof sourcePayloadSchemas] : undefined;
+  if (sourceSchema) return { ...header, payload: sourceSchema.parse(header.payload) } as Envelope & SourceEventData;
+  if (header.event_type.startsWith('memory.') || header.event_type.startsWith('code.')) {
+    const schema = extensionSchemas.get(header.event_type);
+    if (!schema) throw new Error(`Extension event schema is not registered: ${header.event_type}`);
+    return { ...header, event_type: header.event_type as MemoryEventType | CodeEventType, payload: schema.parse(header.payload) };
+  }
+  return unsignedEventSchema.parse(input);
+}
 
 /** Identity covers the entire unsigned envelope, including timestamp and sequence. */
 export function createEvent(input: unknown): GraphEvent {
   canonicalJson(input);
-  const parsed = unsignedEventSchema.parse(input);
+  const parsed = parseUnsigned(input);
   const content_hash = contentHash(parsed);
   const id = sha256(`graphit:event:v1:${content_hash}`);
   return { ...parsed, id, content_hash };
@@ -108,7 +143,7 @@ export interface Project {
   created_at: string;
 }
 
-export interface Session {
+export interface Session extends SessionMetadata {
   id: string;
   project_id: string;
   created_at: string;
@@ -157,7 +192,10 @@ export function applyEvent(previous: ProjectState, input: unknown): ProjectState
       if (checkpointId && !state.checkpoints.some((checkpoint) => checkpoint.id === checkpointId)) {
         throw new Error('Checkpoint does not exist in this project');
       }
-      state.sessions.push({ id: event.session_id, project_id: event.project_id, created_at: event.created_at, resumed_from_checkpoint_id: checkpointId });
+      const metadata = { ...event.payload };
+      if ('checkpoint_id' in metadata) delete (metadata as Partial<typeof metadata>).checkpoint_id;
+      state.sessions.push({ id: event.session_id, project_id: event.project_id, created_at: event.created_at,
+        resumed_from_checkpoint_id: checkpointId, ...sessionMetadataSchema.parse(metadata) });
       state.active_session_id = event.session_id;
       break;
     }
@@ -169,6 +207,8 @@ export function applyEvent(previous: ProjectState, input: unknown): ProjectState
       state.checkpoints.push({ id: event.id, project_id: event.project_id, session_id: event.session_id, ...event.payload, created_at: event.created_at });
       break;
     }
+    default:
+      if (state.active_session_id !== event.session_id) throw new Error('Source and memory events require the active session');
   }
   state.last_sequence = event.sequence;
   return state;

@@ -48,14 +48,14 @@ describe('migrations and SQLite configuration', () => {
     const database = track(new DatabaseSync(path));
     expect(database.prepare('PRAGMA journal_mode').get()?.journal_mode).toBe('wal');
     const before = database.prepare('SELECT * FROM schema_migrations').all();
-    expect(before).toHaveLength(1);
+    expect(before).toHaveLength(migrations.length);
     expect(before[0]?.checksum).toMatch(/^[a-f0-9]{64}$/);
     expect(before[0]?.applied_at).toMatch(/Z$/);
     close(store);
     track(new EventStore(path));
     expect(database.prepare('SELECT * FROM schema_migrations').all()).toEqual(before);
     expect(database.prepare("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name").all().map((row) => row.name))
-      .toEqual(['checkpoints', 'events', 'projects', 'schema_migrations', 'sessions']);
+      .toEqual(['checkpoints', 'code_edges', 'code_files', 'code_imports', 'code_index_runs', 'code_projection_state', 'code_symbols', 'events', 'memory_entities', 'memory_relations', 'projects', 'schema_migrations', 'sessions', 'source_blobs']);
   });
 
   it('refuses in-memory databases because they cannot use WAL', () => {
@@ -66,19 +66,19 @@ describe('migrations and SQLite configuration', () => {
     const { path } = fixture();
     const database = track(new DatabaseSync(path));
     const initial = migrations[0]!;
-    expect(() => migrate(database, [{ ...initial, sql: `${initial.sql}\n-- changed` }])).toThrow('integrity');
-    migrate(database, [...migrations, { version: 2, name: 'future', sql: 'CREATE TABLE future (id TEXT) STRICT;' }]);
+    expect(() => migrate(database, [{ ...initial, sql: `${initial.sql}\n-- changed` }, ...migrations.slice(1)])).toThrow('integrity');
+    migrate(database, [...migrations, { version: migrations.length + 1, name: 'future', sql: 'CREATE TABLE future (id TEXT) STRICT;' }]);
     expect(() => new EventStore(path)).toThrow('newer');
   });
 
   it('rolls back DDL and the migration ledger when a migration fails', () => {
     const { path } = fixture();
     const database = track(new DatabaseSync(path));
-    expect(() => migrate(database, [...migrations, { version: 2, name: 'bad',
+    expect(() => migrate(database, [...migrations, { version: migrations.length + 1, name: 'bad',
       sql: 'CREATE TABLE partial (id TEXT); INSERT INTO missing_table VALUES (1);' }])).toThrow();
     expect(database.prepare("SELECT name FROM sqlite_master WHERE name = 'partial'").get()).toBeUndefined();
-    expect(database.prepare('SELECT COUNT(*) AS count FROM schema_migrations').get()?.count).toBe(1);
-    expect(() => migrate(database, [{ ...migrations[0]!, version: 2 }])).toThrow('ordered');
+    expect(database.prepare('SELECT COUNT(*) AS count FROM schema_migrations').get()?.count).toBe(migrations.length);
+    expect(() => migrate(database, [{ ...migrations[0]!, version: 2 }, ...migrations.slice(1)])).toThrow('ordered');
   });
 });
 

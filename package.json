@@ -6,7 +6,7 @@
   "workspaces": ["packages/*"],
   "engines": { "node": ">=22.13.0" },
   "scripts": {
-    "build": "npm run build -w @graphit/core && npm run build -w @graphit/storage && npm run build -w @graphit/cli",
+    "build": "npm run build -w @graphit/core && npm run build -w @graphit/storage && npm run build -w @graphit/memory && npm run build -w @graphit/codegraph && npm run build -w @graphit/indexer && npm run build -w @graphit/cli",
     "test": "npm run build && vitest run",
     "typecheck": "tsc --noEmit -p tsconfig.check.json",
     "lint": "eslint .",

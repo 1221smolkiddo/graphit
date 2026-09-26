@@ -1,0 +1,9 @@
+{
+  "name": "@graphit/memory",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },
+  "scripts": { "build": "tsc -p tsconfig.json" },
+  "dependencies": { "@graphit/core": "0.0.0", "@graphit/storage": "0.0.0", "zod": "^3.24.2" }
+}
