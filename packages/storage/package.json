@@ -1,0 +1,9 @@
+{
+  "name": "@graphit/storage",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },
+  "scripts": { "build": "tsc -p tsconfig.json && node scripts/copy-migrations.mjs" },
+  "dependencies": { "@graphit/core": "0.0.0" }
+}
