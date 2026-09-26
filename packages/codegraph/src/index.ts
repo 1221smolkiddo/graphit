@@ -1,4 +1,4 @@
-import type { DatabaseSync } from 'node:sqlite';
+import type { SqliteDatabase } from '@graphit/storage';
 import { canonicalJson, codeEventTypes, contentHash } from '@graphit/core';
 import { EventStore, readSourceBlob, type EventProjection } from '@graphit/storage';
 import { assembleGraph } from './resolve.js';
@@ -53,7 +53,7 @@ export class CodeGraphService {
     const adapter = this.#registry.get(observation.language, observation.parser_id, observation.parser_version);
     return validateExtraction(adapter.parse(bytes, observation.path), bytes, observation.path, observation.language);
   }
-  #build(database: DatabaseSync, projectId: string, history: CodeHistory, cached: CodeFile[], force: boolean): CodeGraph {
+  #build(database: SqliteDatabase, projectId: string, history: CodeHistory, cached: CodeFile[], force: boolean): CodeGraph {
     const files: CodeFile[] = [];
     for (const observation of [...history.active.values()].sort((a, b) => a.path < b.path ? -1 : a.path > b.path ? 1 : 0)) {
       const bytes = readSourceBlob(database, observation.content_hash).content;
@@ -66,14 +66,14 @@ export class CodeGraphService {
     }
     return assembleGraph(projectId, files);
   }
-  #persistRuns(database: DatabaseSync, projectId: string, history: CodeHistory): void {
+  #persistRuns(database: SqliteDatabase, projectId: string, history: CodeHistory): void {
     database.prepare('DELETE FROM code_index_runs WHERE project_id = ?').run(projectId);
     const insert = database.prepare('INSERT INTO code_index_runs (project_id, index_run_id, started_sequence, data) VALUES (?, ?, ?, ?)');
     for (const run of history.runs) insert.run(projectId, run.index_run_id, run.started_sequence, canonicalJson(run));
     // The graph still corresponds to the latest successful run. Run observations do not publish partial state.
     database.prepare('UPDATE code_projection_state SET last_event_sequence = ? WHERE project_id = ?').run(history.last_event_sequence, projectId);
   }
-  #persist(database: DatabaseSync, projectId: string, graph: CodeGraph, history: CodeHistory): void {
+  #persist(database: SqliteDatabase, projectId: string, graph: CodeGraph, history: CodeHistory): void {
     for (const table of tables) database.prepare(`DELETE FROM ${table} WHERE project_id = ?`).run(projectId);
     const fileInsert = database.prepare('INSERT INTO code_files (project_id, path, file_id, content_hash, observation_event_id, extraction_hash, extraction_json) VALUES (?, ?, ?, ?, ?, ?, ?)');
     for (const file of graph.files) fileInsert.run(projectId, file.extraction.path, file.id, file.observation.content_hash,
@@ -88,7 +88,7 @@ export class CodeGraphService {
       .run(projectId, history.last_event_sequence, contentHash(graph), canonicalJson(graph.diagnostics));
     this.#persistRuns(database, projectId, history);
   }
-  #read(database: DatabaseSync, projectId: string): Snapshot {
+  #read(database: SqliteDatabase, projectId: string): Snapshot {
     const rows = (table: string, column: string, order: string): unknown[] => database.prepare(`SELECT ${column} FROM ${table} WHERE project_id = ? ORDER BY ${order}`).all(projectId)
       .map((row) => JSON.parse(String(row[column])) as unknown);
     const state = database.prepare('SELECT * FROM code_projection_state WHERE project_id = ?').get(projectId);

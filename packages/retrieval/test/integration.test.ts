@@ -1,6 +1,6 @@
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { DatabaseSync } from 'node:sqlite';
+import { SqliteDatabase } from '@graphit/storage';
 import { describe,expect,it } from 'vitest';
 import { canonicalJson } from '@graphit/core';
 import { RetrievalService, retrievalMetrics } from '@graphit/retrieval';
@@ -16,7 +16,7 @@ describe('retrieval integration',()=>{
 
   it('rolls back artifact and relation events together when explicit linking fails',async()=>{
     const f=await retrievalFixture();const before=f.store.readEvents(f.id);
-    const db=track(new DatabaseSync(f.path));
+    const db=track(new SqliteDatabase(f.path));
     db.exec("CREATE TRIGGER fail_link BEFORE INSERT ON memory_relations BEGIN SELECT RAISE(ABORT, 'link failure'); END;");
     expect(()=>f.retrieval.linkMemoryToSymbol(f.id,f.task.id,f.login.logical_symbol_id)).toThrow('link failure');
     expect(f.store.readEvents(f.id)).toEqual(before);
@@ -78,7 +78,7 @@ describe('retrieval integration',()=>{
   });
   it('rebuilds stale/deleted search rows without changing canonical or P1/P2 state',async()=>{
     const f=await retrievalFixture();const q={projectId:f.id,text:'refreshSession'};
-    const before=f.retrieval.retrieve(q).candidates;const db=track(new DatabaseSync(f.path));
+    const before=f.retrieval.retrieve(q).candidates;const db=track(new SqliteDatabase(f.path));
     const tables=['events','source_blobs','memory_entities','memory_relations','code_files','code_symbols','code_edges'];
     const snapshot=()=>tables.map((table)=>db.prepare(`SELECT * FROM ${table}`).all());
     const canonical=snapshot();

@@ -2,7 +2,7 @@ import { spawnSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { existsSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { DatabaseSync } from 'node:sqlite';
+import { SqliteDatabase } from '@graphit/storage';
 import { describe, expect, it } from 'vitest';
 import { canonicalJson, type GraphEvent, type ProjectState } from '@graphit/core';
 import { type MemoryEntity, type HandoffPacket } from '@graphit/memory';
@@ -175,7 +175,7 @@ describe('actual MCP stdio protocol', () => {
   it.each(['missing', 'corrupt'])('fails closed on %s immutable source evidence', async (failure) => {
     const f = await fixture(true); const a = await connect(f.root);
     const symbol = f.graph.findSymbolsByName(f.id, 'refreshSession')[0]!;
-    const db = new DatabaseSync(f.path);
+    const db = new SqliteDatabase(f.path);
     // Deliberate fixture-only damage, simulating disk corruption; production never offers this operation.
     try {
       if (failure === 'missing') { db.exec('DROP TRIGGER source_blobs_no_delete'); db.prepare('DELETE FROM source_blobs WHERE content_hash = ?').run(symbol.span.contentHash); }

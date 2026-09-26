@@ -1,6 +1,6 @@
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { DatabaseSync } from 'node:sqlite';
+import { SqliteDatabase } from '@graphit/storage';
 import { describe,expect,it } from 'vitest';
 import { defaultEstimator, serializeContext } from '@graphit/context';
 import { retrievalFixture,track } from '../../retrieval/test/helpers.js';
@@ -54,7 +54,7 @@ describe('provenance-preserving context compiler',()=>{
     }
   });
   it('detects missing and corrupt source evidence instead of returning invented context',async()=>{
-    const f=await retrievalFixture();const db=track(new DatabaseSync(f.path));
+    const f=await retrievalFixture();const db=track(new SqliteDatabase(f.path));
     db.exec('DROP TRIGGER source_blobs_no_update; DROP TRIGGER source_blobs_no_delete;');
     db.prepare('UPDATE source_blobs SET content=?,byte_length=? WHERE content_hash=?').run(Buffer.from('bad'),3,f.refresh.span.contentHash);
     expect(()=>f.compiler.compile({projectId:f.id,text:'refreshSession'})).toThrow('integrity');

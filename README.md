@@ -76,6 +76,6 @@ npm run mcp:smoke
 node examples/context-demo.mjs
 ```
 
-The packed-install check runs outside the workspace and exercises real stdio clients, full provider restart, preserved evidence and export/import. Windows/Node 22.17 is the tested release environment; other supported platforms still need CI coverage. SQLite emits an experimental warning on that Node version.
+The packed-install check runs outside the workspace and exercises real stdio clients, full provider restart, preserved evidence and export/import. Windows/Node 22.17 is the tested release environment; other supported platforms still need CI coverage. SQLite uses the stable native `better-sqlite3` driver, without Node's experimental SQLite runtime. The pinned driver ships platform-specific native binaries; a compatible binary is required, or a manual native build on unsupported platforms. Existing project databases retain their schema, migration ledger and canonical evidence.
 
 Synchronous replay favors correctness over very large histories. Dynamic calls and ambiguous imports may remain unresolved. Hashes detect corruption, not malicious re-signing by someone with full filesystem access. Imports are limited to 256 MiB uncompressed; no archive merge or encryption. No VS Code extension, UI, website, cloud sync, embeddings, LLM summaries or private transcript scraping. No P6 work is included.

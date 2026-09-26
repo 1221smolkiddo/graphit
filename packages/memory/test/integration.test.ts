@@ -2,7 +2,7 @@ import { execFile, spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
-import { DatabaseSync } from 'node:sqlite';
+import { SqliteDatabase } from '@graphit/storage';
 import { describe, expect, it } from 'vitest';
 import { reconstructState, type ProjectState, type Session } from '@graphit/core';
 import { buildHandoff, replayMemory, type HandoffPacket, type MemoryEntity } from '@graphit/memory';
@@ -62,7 +62,7 @@ describe('process and provider boundaries', () => {
     const plain = run(context.root, 'handoff');
     expect(plain.status).toBe(0);
     expect(JSON.parse(plain.stdout)).toEqual(packet);
-    const database = track(new DatabaseSync(context.path));
+    const database = track(new SqliteDatabase(context.path));
     database.exec('DELETE FROM memory_relations; DELETE FROM memory_entities;');
     expect(json<HandoffPacket>(context.root, 'handoff')).toEqual(packet);
   });

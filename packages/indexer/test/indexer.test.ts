@@ -1,6 +1,6 @@
 import { readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { DatabaseSync } from 'node:sqlite';
+import { SqliteDatabase } from '@graphit/storage';
 import { describe, expect, it } from 'vitest';
 import { canonicalJson, sha256 } from '@graphit/core';
 import { fixture, track } from './helpers.js';
@@ -87,7 +87,7 @@ describe('immutable versions and incremental parsing', () => {
     const f = await fixture('typescript-basic');
     const first = f.indexer.index(f.id, f.root); expect(first.status).toBe('completed');
     const before = f.graph.getGraph(f.id); const calls = f.parseCalls();
-    const db = track(new DatabaseSync(f.path)); const blobs = db.prepare('SELECT COUNT(*) AS n FROM source_blobs').get()!.n;
+    const db = track(new SqliteDatabase(f.path)); const blobs = db.prepare('SELECT COUNT(*) AS n FROM source_blobs').get()!.n;
     const unchanged = f.indexer.index(f.id, f.root);
     expect(unchanged.metrics.files_parsed).toBe(0); expect(unchanged.files_unchanged).toBe(first.files_seen);
     expect(f.parseCalls()).toBe(calls); expect(f.graph.getGraph(f.id)).toEqual(before);
@@ -104,7 +104,7 @@ describe('immutable versions and incremental parsing', () => {
     const f = await fixture(); const source = 'export function value(){ return 1; }';
     writeFileSync(join(f.root, 'one.ts'), source); writeFileSync(join(f.root, 'two.ts'), source);
     expect(f.indexer.index(f.id, f.root).status).toBe('completed');
-    const db = track(new DatabaseSync(f.path)); expect(db.prepare('SELECT COUNT(*) AS n FROM source_blobs').get()!.n).toBe(1);
+    const db = track(new SqliteDatabase(f.path)); expect(db.prepare('SELECT COUNT(*) AS n FROM source_blobs').get()!.n).toBe(1);
     const original = f.graph.getFile(f.id, 'one.ts')!;
     renameSync(join(f.root, 'one.ts'), join(f.root, 'renamed.ts')); rmSync(join(f.root, 'two.ts'));
     const run = f.indexer.index(f.id, f.root);
@@ -119,7 +119,7 @@ describe('immutable versions and incremental parsing', () => {
     const source = f.store.readEvents(f.id)[0]!;
     f.memory.promoteMemory(f.id, { entityType: 'goal', content: 'Keep evidence', sourceEventIds: [source.id] });
     expect(f.indexer.index(f.id, f.root).status).toBe('completed');
-    const before = f.graph.getGraph(f.id); const db = track(new DatabaseSync(f.path));
+    const before = f.graph.getGraph(f.id); const db = track(new SqliteDatabase(f.path));
     const events = db.prepare('SELECT * FROM events ORDER BY sequence').all();
     const blobs = db.prepare('SELECT * FROM source_blobs ORDER BY content_hash').all();
     const memory = db.prepare('SELECT * FROM memory_entities').all();

@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
-import { DatabaseSync } from 'node:sqlite';
+import { SqliteDatabase } from '@graphit/storage';
 import { Client } from '@modelcontextprotocol/client';
 import { StdioClientTransport } from '@modelcontextprotocol/client/stdio';
 import { EventStore } from '@graphit/storage';
@@ -80,7 +80,7 @@ describe('portable export and import', () => {
     const sourceA = graphA.getSource(projectIdA, symbolsA[0]!.logical_symbol_id);
     const memoryA = memA.getMemoryState(projectIdA);
     const graphSnapshot = graphA.getGraph(projectIdA);
-    const dbA = new DatabaseSync(join(rootA, '.graphit', 'graphit.db'));
+    const dbA = new SqliteDatabase(join(rootA, '.graphit', 'graphit.db'));
     const blobsA = dbA.prepare('SELECT content_hash, content FROM source_blobs ORDER BY content_hash').all();
     // Export must not trust these deliberately damaged derived tables.
     dbA.exec('DELETE FROM memory_entities; DELETE FROM code_symbols; DELETE FROM retrieval_code_fts;'); dbA.close();
@@ -113,7 +113,7 @@ describe('portable export and import', () => {
     expect(eventsB).toEqual(eventsA);
     expect(memB.getMemoryState(projectIdA)).toEqual(memoryA);
     expect(graphB.getGraph(projectIdA)).toEqual(graphSnapshot);
-    const dbB = new DatabaseSync(join(rootB, '.graphit', 'graphit.db'), { readOnly: true });
+    const dbB = new SqliteDatabase(join(rootB, '.graphit', 'graphit.db'), { readonly: true });
     expect(dbB.prepare('SELECT content_hash, content FROM source_blobs ORDER BY content_hash').all()).toEqual(blobsA); dbB.close();
 
     // Memory state identical

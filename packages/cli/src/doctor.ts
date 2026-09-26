@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { DatabaseSync } from 'node:sqlite';
+import { SqliteDatabase } from '@graphit/storage';
 import { canonicalJson, contentHash, reconstructState, sha256, verifyEvent, type GraphEvent } from '@graphit/core';
 import { migrations, readSourceBlob } from '@graphit/storage';
 import { replayMemory } from '@graphit/memory';
@@ -20,9 +20,9 @@ export async function inspectProject(root: string | undefined, projectId?: strin
     code_index_present: false, code_projection_valid: false, retrieval_index_present: false, retrieval_projection_valid: false,
     last_index_status: 'none', latest_index_run: null as unknown, errors: [] as string[], warnings: [] as string[] };
   if (!root || !existsSync(join(root, '.graphit', 'graphit.db'))) { report.warnings.push('Not initialized; run graphit init'); return report; }
-  let db: DatabaseSync | undefined;
+  let db: SqliteDatabase | undefined;
   try {
-    db = new DatabaseSync(join(root, '.graphit', 'graphit.db'), { readOnly: true });
+    db = new SqliteDatabase(join(root, '.graphit', 'graphit.db'), { readonly: true });
     const database = db;
     database.exec('BEGIN'); // One consistent WAL read snapshot; no repairs or checkpoints.
     report.database_reachable = true;

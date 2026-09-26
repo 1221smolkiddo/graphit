@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import type { DatabaseSync } from 'node:sqlite';
+import type { SqliteDatabase } from './sqlite.js';
 import { sha256 } from '@graphit/core';
 
 export interface Migration {
@@ -18,7 +18,7 @@ export const migrations: readonly Migration[] = [
 ];
 
 /** The ledger is the only bootstrap table; domain DDL lives in numbered migrations. */
-export function migrate(database: DatabaseSync, definitions: readonly Migration[] = migrations): void {
+export function migrate(database: SqliteDatabase, definitions: readonly Migration[] = migrations): void {
   database.exec('BEGIN IMMEDIATE');
   try {
     database.exec(`CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -45,16 +45,17 @@ export function migrate(database: DatabaseSync, definitions: readonly Migration[
           throw new Error('Unexpected source event schema; migration refused');
         }
       }
-      database.exec(migration.sql);
       if (migration.editsEventTypeConstraint) {
-        const version = database.prepare('PRAGMA schema_version').get()?.schema_version;
-        if (typeof version !== 'number') throw new Error('Invalid SQLite schema version');
-        database.exec(`PRAGMA schema_version = ${version + 1}; PRAGMA writable_schema = RESET;`);
-        const ddl = database.prepare("SELECT sql FROM sqlite_schema WHERE name = 'events'").get()?.sql;
-        if (typeof ddl !== 'string' || !ddl.includes(`'${migration.requiredEventType ?? 'memory.entity.linked'}'`)) throw new Error('Event schema extension failed');
-        const checks = database.prepare('PRAGMA integrity_check').all();
-        if (checks.length !== 1 || checks[0]?.integrity_check !== 'ok') throw new Error('Migration integrity check failed');
-      }
+        database.applySchemaMigration(migration.sql, () => {
+          const version = database.prepare('PRAGMA schema_version').get()?.schema_version;
+          if (typeof version !== 'number') throw new Error('Invalid SQLite schema version');
+          database.exec(`PRAGMA schema_version = ${version + 1}; PRAGMA writable_schema = RESET;`);
+          const ddl = database.prepare("SELECT sql FROM sqlite_schema WHERE name = 'events'").get()?.sql;
+          if (typeof ddl !== 'string' || !ddl.includes(`'${migration.requiredEventType ?? 'memory.entity.linked'}'`)) throw new Error('Event schema extension failed');
+          const checks = database.prepare('PRAGMA integrity_check').all();
+          if (checks.length !== 1 || checks[0]?.integrity_check !== 'ok') throw new Error('Migration integrity check failed');
+        });
+      } else database.exec(migration.sql);
       database.prepare('INSERT INTO schema_migrations (version, name, checksum, applied_at) VALUES (?, ?, ?, ?)')
         .run(migration.version, migration.name, checksum, new Date().toISOString());
     }

@@ -3,7 +3,7 @@ import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSy
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { DatabaseSync } from 'node:sqlite';
+import { SqliteDatabase } from '@graphit/storage';
 import { gzipSync, gunzipSync } from 'node:zlib';
 import { afterEach, describe, expect, it } from 'vitest';
 import { canonicalJson, contentHash, createEvent } from '@graphit/core';
@@ -135,19 +135,19 @@ describe('P5 fail-closed archives and read-only doctor', () => {
     expect(JSON.parse(healthy.stdout)).toMatchObject({ schema_valid: true, memory_projection_valid: true, code_projection_valid: true,
       source_blob_integrity: 'ok', retrieval_projection_valid: true, last_index_status: 'completed' });
     expect(readFileSync(path)).toEqual(before);
-    const db = new DatabaseSync(path); db.exec('DELETE FROM memory_entities; DELETE FROM retrieval_code_fts'); db.close();
+    const db = new SqliteDatabase(path); db.exec('DELETE FROM memory_entities; DELETE FROM retrieval_code_fts'); db.close();
     const damaged = readFileSync(path);
     const result = run(f.root, 'doctor', '--json');
     expect(result.status).toBe(1);
     expect(JSON.parse(result.stdout)).toMatchObject({ memory_projection_valid: false, retrieval_projection_valid: false });
     expect(readFileSync(path)).toEqual(damaged);
-    const corrupt = new DatabaseSync(path); corrupt.exec('DROP TRIGGER source_blobs_no_update; UPDATE source_blobs SET content = zeroblob(byte_length)'); corrupt.close();
+    const corrupt = new SqliteDatabase(path); corrupt.exec('DROP TRIGGER source_blobs_no_update; UPDATE source_blobs SET content = zeroblob(byte_length)'); corrupt.close();
     expect(JSON.parse(run(f.root, 'doctor', '--json').stdout).errors.join(' ')).toContain('Source blob integrity');
   });
 
   it('doctor reports a mismatched migration ledger without applying migrations', async () => {
     const f = await archive(); const path = join(f.root, '.graphit', 'graphit.db');
-    const db = new DatabaseSync(path); db.exec("UPDATE schema_migrations SET checksum = 'bad' WHERE version = 4"); db.close();
+    const db = new SqliteDatabase(path); db.exec("UPDATE schema_migrations SET checksum = 'bad' WHERE version = 4"); db.close();
     const before = readFileSync(path);
     const result = run(f.root, 'doctor', '--json');
     expect(result.status).toBe(1); expect(JSON.parse(result.stdout).schema_valid).toBe(false);

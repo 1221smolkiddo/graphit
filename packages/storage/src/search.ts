@@ -1,4 +1,4 @@
-import type { DatabaseSync } from 'node:sqlite';
+import type { SqliteDatabase } from './sqlite.js';
 import { contentHash } from '@graphit/core';
 
 export interface SearchDocuments {
@@ -7,7 +7,7 @@ export interface SearchDocuments {
 }
 export interface SearchHit { id: string; score: number }
 const tables = { memory: 'retrieval_memory_fts', code: 'retrieval_code_fts' } as const;
-export function ensureSearchProjection(db: DatabaseSync, projectId: string, documents: SearchDocuments, force = false): boolean {
+export function ensureSearchProjection(db: SqliteDatabase, projectId: string, documents: SearchDocuments, force = false): boolean {
   const sorted = { memory: [...documents.memory].sort((a,b) => a.id < b.id ? -1 : 1),
     code: [...documents.code].sort((a,b) => a.id < b.id ? -1 : 1) };
   const digest = contentHash(sorted);
@@ -27,7 +27,7 @@ export function ensureSearchProjection(db: DatabaseSync, projectId: string, docu
   db.prepare('INSERT INTO retrieval_projection_state VALUES (?, ?) ON CONFLICT(project_id) DO UPDATE SET document_hash = excluded.document_hash').run(projectId, digest);
   return true;
 }
-export function searchProjection(db: DatabaseSync, projectId: string, kind: keyof typeof tables, terms: readonly string[], limit: number): SearchHit[] {
+export function searchProjection(db: SqliteDatabase, projectId: string, kind: keyof typeof tables, terms: readonly string[], limit: number): SearchHit[] {
   if (!Number.isSafeInteger(limit) || limit < 1 || limit > 10000) throw new Error('Invalid search limit');
   if (!terms.length) return [];
   // Terms are quoted as literals; neither SQL nor FTS syntax is accepted from the query.

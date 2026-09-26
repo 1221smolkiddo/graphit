@@ -1,6 +1,6 @@
 // Release acceptance: install the actual tarball outside this workspace; all Graphit actions use that installation.
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import console from 'node:console';
 import process from 'node:process';
 import { Buffer } from 'node:buffer';
@@ -13,18 +13,28 @@ import { StdioClientTransport } from '@modelcontextprotocol/client/stdio';
 const archive = realpathSync(resolve(process.argv[2] ?? 'graphit-0.1.0.tgz'));
 const sandbox = mkdtempSync(join(tmpdir(), 'graphit-packed-'));
 const clients = new Set();
+const serverLogs = [];
 const env = { ...process.env }; delete env.NODE_PATH; delete env.NODE_OPTIONS;
 const prefix = join(sandbox, 'prefix');
 const project = join(sandbox, 'project');
 const imported = join(sandbox, 'imported');
 const installedRoot = join(prefix, process.platform === 'win32' ? 'node_modules' : 'lib/node_modules', 'graphit');
 const cli = join(installedRoot, 'dist/cli/index.js');
-function run(cwd, ...args) { return execFileSync(process.execPath, [cli, ...args], { cwd, env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim(); }
+function checked(command, args, options) {
+  const result = spawnSync(command, args, { ...options, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+  assert.ifError(result.error);
+  assert.equal(result.status, 0, result.stderr + result.stdout);
+  assert.doesNotMatch(result.stderr + result.stdout, /ExperimentalWarning/i);
+  return result.stdout.trim();
+}
+function run(cwd, ...args) { return checked(process.execPath, [cli, ...args], { cwd, env }); }
 async function connect(cwd, provider, agent) {
   const client = new Client({ name: agent, version: '1' }); clients.add(client);
   const transport = new StdioClientTransport({ command: process.execPath,
     args: [cli, 'mcp', '--project', cwd, '--provider', provider, '--agent', agent], cwd, stderr: 'pipe',
     env: Object.fromEntries(Object.entries(env).filter(([, value]) => value !== undefined)) });
+  const log = { stderr: '' }; serverLogs.push(log);
+  transport.stderr.on('data', chunk => { log.stderr += chunk.toString(); });
   await client.connect(transport); return { client, transport };
 }
 async function call(client, name, args = {}) {
@@ -42,14 +52,14 @@ try {
   assert.equal(metadata.version, '0.1.0'); assert.equal(metadata.bin.graphit, 'dist/cli/index.js');
   const binary = process.platform === 'win32' ? join(prefix, 'graphit.cmd') : join(prefix, 'bin/graphit');
   const version = process.platform === 'win32'
-    ? execFileSync(process.env.ComSpec ?? 'cmd.exe', ['/d', '/s', '/c', `""${binary}" --version"`], { cwd: sandbox, env, encoding: 'utf8', windowsVerbatimArguments: true })
-    : execFileSync(binary, ['--version'], { cwd: sandbox, env, encoding: 'utf8' });
+    ? checked(process.env.ComSpec ?? 'cmd.exe', ['/d', '/s', '/c', `""${binary}" --version"`], { cwd: sandbox, env, windowsVerbatimArguments: true })
+    : checked(binary, ['--version'], { cwd: sandbox, env });
   assert.equal(version.trim(), 'graphit 0.1.0');
   assert.ok(run(sandbox, '--help').includes('graphit export'));
   assert.ok(run(sandbox, 'doctor').includes('project_initialized: false'));
   mkdirSync(project); mkdirSync(imported);
   writeFileSync(join(project, 'example.ts'), 'export function greet(name: string) { return `Hello ${name}`; }\nexport function main() { return greet("World"); }\n');
-  run(project, 'init', '--name', 'Fresh Install Test');
+  run(project, 'init', '--name', 'SQLite Production Test');
   run(project, 'index', '.');
   const stats = JSON.parse(run(project, 'code', 'stats', '--json')); assert.ok(stats.symbols > 0 && stats.edges > 0);
   const context = JSON.parse(run(project, 'context', 'explain this project', '--tokens', '1500', '--json'));
@@ -85,9 +95,15 @@ try {
   assert.ok(required.every((id) => packet.evidence.some((unit) => unit.id === `memory:${id}`)));
   assert.ok(packet.provenance.includes(source.id) && packet.provenance.includes(test.id));
   await call(b.client, 'graphit_record_event', { event_type: 'conversation.assistant_message', payload: { content: 'Continue using the previous provider evidence.' } });
+  await b.client.close(); clients.delete(b.client);
+  for (const log of serverLogs) assert.doesNotMatch(log.stderr, /ExperimentalWarning/i);
+  const doctor = JSON.parse(run(imported, 'doctor', '--json'));
+  assert.equal(doctor.journal_mode, 'wal');
+  assert.equal(doctor.retrieval_projection_valid, true);
   console.log(JSON.stringify({ packed_install: 'passed', version: version.trim(), cli_commands: 'passed',
     isolated_prefix: true, runtime_workspace_dependency: false, tree_sitter: 'passed', migrations: 'passed',
     export_import: 'passed', doctor: 'passed', mcp_stdio: 'passed', tools: 13, resources: 3,
+    experimental_warning: false, journal_mode: doctor.journal_mode, fts5_bm25: 'passed',
     provider_a_exited: true, provider_b_continued: true, handoff_bytes: Buffer.byteLength(JSON.stringify(handoff)),
     context_bytes: Buffer.byteLength(JSON.stringify(packet)), estimated_tokens: packet.budget.estimated_tokens,
     requested_tokens: 2000, required_evidence_retained: '4/4' }, null, 2));

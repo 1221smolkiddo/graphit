@@ -20,7 +20,9 @@ function temporary(): string {
 }
 
 function run(cwd: string, ...args: string[]): ReturnType<typeof spawnSync> {
-  return spawnSync(process.execPath, [executable, ...args], { cwd, encoding: 'utf8' });
+  const result = spawnSync(process.execPath, [executable, ...args], { cwd, encoding: 'utf8' });
+  expect(result.stderr).not.toMatch(/ExperimentalWarning/i);
+  return result;
 }
 
 function json<T>(cwd: string, ...args: string[]): T {

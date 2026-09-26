@@ -1,5 +1,5 @@
 import { join } from 'node:path';
-import { DatabaseSync } from 'node:sqlite';
+import { SqliteDatabase } from '@graphit/storage';
 import { describe, expect, it } from 'vitest';
 import { migrate, migrations } from '@graphit/storage';
 import { fixture, temporary, track } from '../../indexer/test/helpers.js';
@@ -8,8 +8,8 @@ describe('P1 to P2 migration', () => {
   it('preserves P0/P1 event rows, triggers, root page, memory projections and migration checksums', async () => {
     const f = await fixture(); const source = f.store.readEvents(f.id)[0]!;
     f.memory.promoteMemory(f.id, { entityType: 'goal', content: 'Preserve P1', sourceEventIds: [source.id] });
-    const original = track(new DatabaseSync(f.path));
-    const legacy = track(new DatabaseSync(join(temporary(), 'legacy.db')));
+    const original = track(new SqliteDatabase(f.path));
+    const legacy = track(new SqliteDatabase(join(temporary(), 'legacy.db')));
     legacy.exec('PRAGMA journal_mode = WAL'); migrate(legacy, migrations.slice(0, 2));
     const tables = ['events', 'projects', 'sessions', 'checkpoints', 'memory_entities', 'memory_relations'];
     for (const table of tables) for (const row of original.prepare(`SELECT * FROM ${table}`).all()) {
@@ -31,7 +31,7 @@ describe('P1 to P2 migration', () => {
   });
 
   it('rolls back schema edits and new tables if migration 3 fails', () => {
-    const db = track(new DatabaseSync(join(temporary(), 'rollback.db'))); migrate(db, migrations.slice(0, 2));
+    const db = track(new SqliteDatabase(join(temporary(), 'rollback.db'))); migrate(db, migrations.slice(0, 2));
     const before = db.prepare("SELECT sql FROM sqlite_schema WHERE name = 'events'").get();
     expect(() => migrate(db, [...migrations.slice(0, 2), { ...migrations[2]!, sql: migrations[2]!.sql + '\nINSERT INTO missing_table VALUES (1);' }])).toThrow();
     expect(db.prepare("SELECT sql FROM sqlite_schema WHERE name = 'events'").get()).toEqual(before);

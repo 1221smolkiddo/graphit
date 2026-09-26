@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { DatabaseSync } from 'node:sqlite';
+import { SqliteDatabase } from '@graphit/storage';
 import { promisify } from 'node:util';
 import { afterEach, describe, expect, it } from 'vitest';
 import { contentHash, reconstructState, type AppendEventInput } from '@graphit/core';
@@ -45,7 +45,7 @@ afterEach(() => {
 describe('migrations and SQLite configuration', () => {
   it('uses WAL and versioned, checksummed migrations that can run repeatedly', () => {
     const { store, path } = fixture();
-    const database = track(new DatabaseSync(path));
+    const database = track(new SqliteDatabase(path));
     expect(database.prepare('PRAGMA journal_mode').get()?.journal_mode).toBe('wal');
     const before = database.prepare('SELECT * FROM schema_migrations').all();
     expect(before).toHaveLength(migrations.length);
@@ -64,7 +64,7 @@ describe('migrations and SQLite configuration', () => {
 
   it('fails closed if a migration changes or the database is from a newer version', () => {
     const { path } = fixture();
-    const database = track(new DatabaseSync(path));
+    const database = track(new SqliteDatabase(path));
     const initial = migrations[0]!;
     expect(() => migrate(database, [{ ...initial, sql: `${initial.sql}\n-- changed` }, ...migrations.slice(1)])).toThrow('integrity');
     migrate(database, [...migrations, { version: migrations.length + 1, name: 'future', sql: 'CREATE TABLE future (id TEXT) STRICT;' }]);
@@ -73,7 +73,7 @@ describe('migrations and SQLite configuration', () => {
 
   it('rolls back DDL and the migration ledger when a migration fails', () => {
     const { path } = fixture();
-    const database = track(new DatabaseSync(path));
+    const database = track(new SqliteDatabase(path));
     expect(() => migrate(database, [...migrations, { version: migrations.length + 1, name: 'bad',
       sql: 'CREATE TABLE partial (id TEXT); INSERT INTO missing_table VALUES (1);' }])).toThrow();
     expect(database.prepare("SELECT name FROM sqlite_master WHERE name = 'partial'").get()).toBeUndefined();
@@ -99,7 +99,7 @@ describe('transactional source events', () => {
 
   it('blocks source UPDATE, DELETE and INSERT OR REPLACE at the database boundary', () => {
     const { store, path, id } = fixture();
-    const database = track(new DatabaseSync(path));
+    const database = track(new SqliteDatabase(path));
     const before = store.readEvents(id);
     expect(() => database.exec("UPDATE events SET created_at = 'changed'")).toThrow('immutable');
     expect(() => database.exec('DELETE FROM events')).toThrow('immutable');
@@ -109,7 +109,7 @@ describe('transactional source events', () => {
 
   it('blocks sequence gaps even from a direct SQL connection', () => {
     const { path } = fixture();
-    const database = track(new DatabaseSync(path));
+    const database = track(new SqliteDatabase(path));
     expect(() => database.exec(`INSERT INTO events SELECT
       '${'f'.repeat(64)}', project_id, session_id, 99, event_type, payload, created_at, content_hash
       FROM events LIMIT 1`)).toThrow('sequence');
@@ -142,14 +142,14 @@ describe('transactional source events', () => {
     }));
     expect(() => store.initializeProject(root, 'test')).toThrow();
     expect(store.listProjects()).toEqual([]);
-    const database = track(new DatabaseSync(join(root, 'graphit.db')));
+    const database = track(new SqliteDatabase(join(root, 'graphit.db')));
     expect(database.prepare('SELECT COUNT(*) AS count FROM events').get()?.count).toBe(0);
     expect(database.prepare('SELECT COUNT(*) AS count FROM projects').get()?.count).toBe(0);
   });
 
   it('rolls back the appended event if projection persistence fails', () => {
     const { store, path, id } = fixture();
-    const database = track(new DatabaseSync(path));
+    const database = track(new SqliteDatabase(path));
     database.exec(`CREATE TRIGGER test_projection_failure BEFORE INSERT ON checkpoints
       BEGIN SELECT RAISE(ABORT, 'injected projection failure'); END;`);
     const before = store.readEvents(id);
@@ -175,8 +175,9 @@ describe('transactional source events', () => {
       try { for (let i = 0; i < 6; i++) store.appendEvent({ project_id: process.argv[2],
         session_id: randomUUID(), event_type: 'session.started', payload: {} }); }
       finally { store.close(); }`;
-    await Promise.all(Array.from({ length: 4 }, () => exec(process.execPath,
+    const writers = await Promise.all(Array.from({ length: 4 }, () => exec(process.execPath,
       ['--input-type=module', '-e', script, path, id], { cwd: process.cwd() })));
+    for (const writer of writers) expect(writer.stderr).not.toMatch(/ExperimentalWarning/i);
     const events = store.readEvents(id);
     expect(events.map((event) => event.sequence)).toEqual(Array.from({ length: 26 }, (_, index) => index + 1));
     expect(new Set(events.map((event) => event.id)).size).toBe(26);
@@ -226,7 +227,7 @@ describe('checkpoints, resume and projection recovery', () => {
     store.resume(id);
     const before = store.getState(id);
     const sourceEvents = store.readEvents(id);
-    const database = track(new DatabaseSync(path));
+    const database = track(new SqliteDatabase(path));
     database.exec('DELETE FROM checkpoints; DELETE FROM sessions; DELETE FROM projects;');
     expect(store.getState(id)).toEqual(before);
     store.rebuildProjections();
@@ -242,7 +243,7 @@ describe('checkpoints, resume and projection recovery', () => {
 
   it('fails closed on corrupt history before modifying events or rebuilding projections', () => {
     const { store, path, id } = fixture();
-    const database = track(new DatabaseSync(path));
+    const database = track(new SqliteDatabase(path));
     database.prepare(`INSERT INTO events
       (id, project_id, session_id, sequence, event_type, payload, created_at, content_hash)
       VALUES (?, ?, ?, 3, 'session.started', '{}', '2026-09-26T00:00:00.000Z', ?)`)

@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { join } from 'node:path';
-import { DatabaseSync } from 'node:sqlite';
+import { SqliteDatabase } from '@graphit/storage';
 import { describe, expect, it } from 'vitest';
 import { canonicalJson, contentHash, createEvent, reconstructState } from '@graphit/core';
 import { EventStore, migrate, migrations } from '@graphit/storage';
@@ -11,7 +11,7 @@ describe('P0 → P1 migration preservation', () => {
   it('keeps original event rows, rowids, root page, triggers and P0 checkpoint hashes intact', () => {
     const root = temporary();
     const path = join(root, 'legacy.db');
-    const database = track(new DatabaseSync(path));
+    const database = track(new SqliteDatabase(path));
     database.exec('PRAGMA journal_mode = WAL');
     migrate(database, migrations.slice(0, 1));
     const project_id = randomUUID();
@@ -51,7 +51,7 @@ describe('P0 → P1 migration preservation', () => {
   });
 
   it('rolls back schema edits if a later step of migration 2 fails', () => {
-    const database = track(new DatabaseSync(join(temporary(), 'rollback.db')));
+    const database = track(new SqliteDatabase(join(temporary(), 'rollback.db')));
     migrate(database, migrations.slice(0, 1));
     const before = database.prepare("SELECT sql FROM sqlite_schema WHERE name = 'events'").get();
     const bad = { ...migrations[1]!, sql: `${migrations[1]!.sql}\nINSERT INTO nonexistent_table VALUES (1);` };

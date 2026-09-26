@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { mkdirSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { DatabaseSync } from 'node:sqlite';
+import { SqliteDatabase } from '@graphit/storage';
 import { describe, expect, it } from 'vitest';
 import { sha256 } from '@graphit/core';
 import { EventStore } from '@graphit/storage';
@@ -15,7 +15,7 @@ describe('fail-closed indexing and source integrity', () => {
     const f = await fixture(); writeFileSync(join(f.root, 'value.ts'), 'function value(){ return 1; }');
     f.indexer.index(f.id, f.root); const before = f.graph.getGraph(f.id);
     const bytes = Buffer.from('function value(){ return 2; }'); writeFileSync(join(f.root, 'value.ts'), bytes);
-    const db = track(new DatabaseSync(f.path));
+    const db = track(new SqliteDatabase(f.path));
     db.exec("CREATE TRIGGER inject_code_failure BEFORE INSERT ON code_symbols BEGIN SELECT RAISE(ABORT, 'injected graph publication failure'); END");
     const run = f.indexer.index(f.id, f.root);
     expect(run.status).toBe('failed'); expect(run.errors.at(-1)!.message).toContain('injected graph publication failure');
@@ -74,14 +74,14 @@ describe('fail-closed indexing and source integrity', () => {
   });
 
   it('detects corrupt content hashes even when corruption is inserted through raw SQL', async () => {
-    const f = await fixture(); const db = track(new DatabaseSync(f.path));
+    const f = await fixture(); const db = track(new SqliteDatabase(f.path));
     db.prepare('INSERT INTO source_blobs VALUES (?, ?, ?, ?)').run('0'.repeat(64), 3, Buffer.from('bad'), new Date().toISOString());
     expect(() => f.store.readSourceBlob('0'.repeat(64))).toThrow('integrity check failed');
   });
 
   it('blocks update, delete and replacement of preserved blobs in SQLite', async () => {
     const f = await fixture(); const blob = f.store.withProjectTransaction(f.id, (tx) => tx.putSourceBlob(Buffer.from('source')));
-    const db = track(new DatabaseSync(f.path));
+    const db = track(new SqliteDatabase(f.path));
     expect(() => db.prepare('UPDATE source_blobs SET created_at = ? WHERE content_hash = ?').run(new Date().toISOString(), blob.content_hash)).toThrow('immutable');
     expect(() => db.prepare('DELETE FROM source_blobs WHERE content_hash = ?').run(blob.content_hash)).toThrow('immutable');
     expect(() => db.prepare('INSERT OR REPLACE INTO source_blobs VALUES (?, ?, ?, ?)').run(blob.content_hash, 6, Buffer.from('source'), blob.created_at)).toThrow('cannot be replaced');

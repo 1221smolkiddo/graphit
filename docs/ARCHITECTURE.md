@@ -10,4 +10,6 @@ P5 adds no tables and does not modify migrations 001–004. Archives contain can
 
 One public npm package contains generated `dist/<workspace>/*.js`, migrations, public docs and license. The prepack assembler rewrites internal workspace imports to relative paths. Runtime algorithms are unchanged; no module bundler or workspace symlink is needed. Zod 3 and MCP's Zod 4 remain separately resolved. Tree-sitter WASM and the MCP SDK are regular runtime dependencies. Source maps, tests, fixtures, databases and private package manifests are excluded.
 
-Doctor opens SQLite with `readOnly: true`, verifies the ledger and evidence, and compares projections to replay; it does not migrate, checkpoint, repair or append. Missing indexes are warnings; corrupted/stale present indexes are errors.
+SQLite connections use `better-sqlite3` through a small synchronous adapter. Writers retain WAL, FULL synchronous mode, foreign keys, a 5-second busy timeout and explicit BEGIN IMMEDIATE / savepoint transactions. The driver change does not alter migration SQL, schema or canonical formats. Historical migrations 2 and 3 require writable-schema access: defensive mode is relaxed only for their SQL and validation inside the migration transaction, then restored in a finally block.
+
+Doctor opens SQLite with `readonly: true`, verifies the ledger and evidence, and compares projections to replay; it does not migrate, checkpoint, repair or append. Missing indexes are warnings; corrupted/stale present indexes are errors.

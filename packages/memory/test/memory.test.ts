@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { join } from 'node:path';
-import { DatabaseSync } from 'node:sqlite';
+import { SqliteDatabase } from '@graphit/storage';
 import { describe, expect, it } from 'vitest';
 import { canonicalJson, createEvent, type AppendEventInput, type SourceEventData } from '@graphit/core';
 import { EventStore } from '@graphit/storage';
@@ -176,7 +176,7 @@ describe('projection preservation', () => {
     const context = fixture();
     const source = message(context, 'real evidence');
     context.memory.promoteMemory(context.id, { entityType: 'goal', content: 'Valid goal', sourceEventIds: [source.id] });
-    const database = track(new DatabaseSync(context.path));
+    const database = track(new SqliteDatabase(context.path));
     const before = database.prepare('SELECT * FROM memory_entities').all();
     const fakeSource = 'f'.repeat(64);
     const invalid = createEvent({ project_id: context.id, session_id: source.session_id,
@@ -204,7 +204,7 @@ describe('projection preservation', () => {
     const other = context.store.initializeProject(join(context.root, 'other'), 'Other').project!.id;
     const otherSource = context.store.readEvents(other)[0]!;
     context.memory.promoteMemory(other, { entityType: 'goal', content: 'Other project', sourceEventIds: [otherSource.id] });
-    const database = track(new DatabaseSync(context.path));
+    const database = track(new SqliteDatabase(context.path));
     const rows = () => database.prepare('SELECT * FROM memory_entities ORDER BY project_id, id').all();
     const originalRows = rows();
     const originalRelations = database.prepare('SELECT * FROM memory_relations').all();
@@ -226,7 +226,7 @@ describe('projection preservation', () => {
   it('rolls back source and derived rows if memory projection persistence fails', () => {
     const context = fixture();
     const source = message(context, 'source');
-    const database = track(new DatabaseSync(context.path));
+    const database = track(new SqliteDatabase(context.path));
     database.exec(`CREATE TRIGGER test_memory_failure BEFORE INSERT ON memory_entities
       BEGIN SELECT RAISE(ABORT, 'injected memory projection failure'); END;`);
     const events = context.store.readEvents(context.id);

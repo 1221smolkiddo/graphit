@@ -14,6 +14,7 @@ export const cli = fileURLToPath(new URL('../../cli/dist/index.js', import.meta.
 const directories: string[] = [];
 const stores = new Set<EventStore>();
 const clients = new Set<Client>();
+const stderrLogs: (() => string)[] = [];
 export async function fixture(index = false) {
   const root = mkdtempSync(join(tmpdir(), 'graphit-p4-test-')); directories.push(root);
   if (index) cpSync(fileURLToPath(new URL('../../../fixtures/repos/auth-retrieval', import.meta.url)), root, { recursive: true });
@@ -32,6 +33,7 @@ export async function connect(root: string, provider = 'unknown', agent = 'test'
     args: [cli, 'mcp', '--provider', provider, '--agent', agent, '--model', 'arbitrary-model', '--client', 'vitest',
       '--external-session-id', 'external-test', ...(project === undefined ? [] : ['--project', project])], cwd: root, stderr: 'pipe' });
   let stderr = ''; transport.stderr?.on('data', (chunk: Buffer) => { stderr += chunk.toString(); });
+  stderrLogs.push(() => stderr);
   const client = new Client({ name: agent, version: '1.0.0' }); clients.add(client);
   await client.connect(transport);
   return { client, transport, stderr: () => stderr, close: async () => { await client.close(); clients.delete(client); } };
@@ -52,4 +54,5 @@ afterEach(async () => {
   for (const client of clients) await client.close(); clients.clear();
   for (const store of stores) store.close(); stores.clear();
   for (const directory of directories.splice(0)) rmSync(directory, { recursive: true, force: true });
+  for (const log of stderrLogs.splice(0)) expect(log()).not.toMatch(/ExperimentalWarning/i);
 });

@@ -1,8 +1,8 @@
-import type { DatabaseSync } from 'node:sqlite';
+import type { SqliteDatabase } from './sqlite.js';
 import { hashSchema, sha256, timestampSchema } from '@graphit/core';
 
 export interface SourceBlob { content_hash: string; byte_length: number; content: Uint8Array; created_at: string }
-export function readSourceBlob(database: DatabaseSync, hash: string): SourceBlob {
+export function readSourceBlob(database: SqliteDatabase, hash: string): SourceBlob {
   hashSchema.parse(hash);
   const row = database.prepare('SELECT * FROM source_blobs WHERE content_hash = ?').get(hash);
   if (!row) throw new Error(`Source blob does not exist: ${hash}`);
@@ -11,7 +11,7 @@ export function readSourceBlob(database: DatabaseSync, hash: string): SourceBlob
   }
   return { content_hash: hash, byte_length: row.content.byteLength, content: Uint8Array.from(row.content), created_at: timestampSchema.parse(row.created_at) };
 }
-export function insertSourceBlob(database: DatabaseSync, bytes: Uint8Array, createdAt: string): SourceBlob {
+export function insertSourceBlob(database: SqliteDatabase, bytes: Uint8Array, createdAt: string): SourceBlob {
   timestampSchema.parse(createdAt);
   const hash = sha256(bytes);
   if (database.prepare('SELECT 1 FROM source_blobs WHERE content_hash = ?').get(hash)) return readSourceBlob(database, hash);

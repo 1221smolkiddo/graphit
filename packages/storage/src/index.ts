@@ -1,7 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import { resolve, dirname, join } from 'node:path';
 import { existsSync, readFileSync } from 'node:fs';
-import { DatabaseSync } from 'node:sqlite';
+import { SqliteDatabase } from './sqlite.js';
+export { SqliteDatabase } from './sqlite.js';
 import {
   applyEvent, canonicalJson, contentHash, createEvent, reconstructState, verifyEvent,
   sessionMetadataSchema, type AppendEventInput, type Checkpoint, type EventData, type GraphEvent,
@@ -24,9 +25,9 @@ export interface StoreOptions {
 export interface EventProjection {
   name: string;
   eventTypes: readonly string[];
-  rebuild(database: DatabaseSync, projectId: string, events: readonly GraphEvent[]): void;
-  read(database: DatabaseSync, projectId: string): unknown;
-  onAppend?(database: DatabaseSync, projectId: string, events: readonly GraphEvent[]): void;
+  rebuild(database: SqliteDatabase, projectId: string, events: readonly GraphEvent[]): void;
+  read(database: SqliteDatabase, projectId: string): unknown;
+  onAppend?(database: SqliteDatabase, projectId: string, events: readonly GraphEvent[]): void;
 }
 
 export type ProjectAppendInput = EventData & { session_id?: string; created_at?: string };
@@ -49,7 +50,7 @@ export interface ResumeResult {
 }
 
 export class EventStore {
-  readonly #database: DatabaseSync;
+  readonly #database: SqliteDatabase;
   readonly #clock: () => string;
   readonly #path: string;
   readonly #projections = new Map<string, EventProjection>();
@@ -59,7 +60,7 @@ export class EventStore {
   constructor(path: string, options: StoreOptions = {}) {
     this.#path = resolve(path);
     this.#clock = options.clock ?? (() => new Date().toISOString());
-    this.#database = new DatabaseSync(path);
+    this.#database = new SqliteDatabase(path);
     try {
       this.#database.exec('PRAGMA busy_timeout = 5000; PRAGMA foreign_keys = ON; PRAGMA recursive_triggers = ON;');
       const mode = this.#database.prepare('PRAGMA journal_mode = WAL').get();

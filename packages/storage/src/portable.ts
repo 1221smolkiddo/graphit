@@ -2,7 +2,7 @@ import { createReadStream, createWriteStream } from 'node:fs';
 import { pipeline } from 'node:stream/promises';
 import { createGzip, createGunzip } from 'node:zlib';
 import { Readable, Writable } from 'node:stream';
-import type { DatabaseSync } from 'node:sqlite';
+import type { SqliteDatabase } from './sqlite.js';
 import { z } from 'zod';
 import { canonicalJson, contentHash, sha256, hashSchema, timestampSchema, reconstructState, verifyEvent, type GraphEvent } from '@graphit/core';
 import { migrations } from './migrations.js';
@@ -81,7 +81,7 @@ export function validateExport(data: string) {
 
 /** Consistent project-only snapshot. Sessions/project/checkpoints are already canonical events.
  * Never exports unrelated projects' blobs or any derived index. Refuses to overwrite existing files. */
-export async function exportProject(database: DatabaseSync, projectId: string, outputPath: string, graphitVersion: string): Promise<ExportManifest> {
+export async function exportProject(database: SqliteDatabase, projectId: string, outputPath: string, graphitVersion: string): Promise<ExportManifest> {
   database.exec('SAVEPOINT graphit_export');
   let body: string;
   let manifest: ExportManifest;
@@ -113,7 +113,7 @@ export async function exportProject(database: DatabaseSync, projectId: string, o
 
 /** All canonical inserts share a savepoint. Extension replay and projection rebuild are required
  * in the caller's surrounding transaction before it commits (EventStore.importArchive does this). */
-export function importProject(database: DatabaseSync, data: string): ImportResult {
+export function importProject(database: SqliteDatabase, data: string): ImportResult {
   const archive = validateExport(data);
   database.exec('SAVEPOINT graphit_import');
   try {
