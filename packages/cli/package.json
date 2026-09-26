@@ -5,5 +5,5 @@
   "type": "module",
   "bin": { "graphit": "./dist/index.js" },
   "scripts": { "build": "tsc -p tsconfig.json" },
-  "dependencies": { "@graphit/core": "0.0.0", "@graphit/storage": "0.0.0", "@graphit/memory": "0.0.0", "@graphit/codegraph": "0.0.0", "@graphit/indexer": "0.0.0", "@graphit/retrieval": "0.0.0", "@graphit/context": "0.0.0" }
+  "dependencies": { "@graphit/core": "0.0.0", "@graphit/storage": "0.0.0", "@graphit/memory": "0.0.0", "@graphit/codegraph": "0.0.0", "@graphit/indexer": "0.0.0", "@graphit/retrieval": "0.0.0", "@graphit/context": "0.0.0", "@graphit/mcp": "0.0.0" }
 }

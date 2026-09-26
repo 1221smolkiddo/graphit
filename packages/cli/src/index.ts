@@ -9,8 +9,9 @@ import { CodeGraphService } from '@graphit/codegraph';
 import { createParserRegistry, RepositoryIndexer } from '@graphit/indexer';
 import { RetrievalService, type RetrievalQuery } from '@graphit/retrieval';
 import { ContextCompiler, renderContext, serializeContext } from '@graphit/context';
+import { openGraphit, runStdio } from '@graphit/mcp';
 
-const usage = `Graphit P3 — evidence retrieval and context compilation
+const usage = `Graphit P4 — provider-neutral MCP continuation
 
   graphit init [--name <name>] [--json]
   graphit status [--json]
@@ -34,6 +35,9 @@ const usage = `Graphit P3 — evidence retrieval and context compilation
   graphit memory link <memory-id> --symbol <symbol-id> [--json]
   graphit retrieve "<query>" [--limit <n>] [--mode <mode>] [--json]
   graphit context "<query>" [--tokens <n>] [--mode <mode>] [--file <path>] [--symbol <id>] [--json]
+  graphit mcp [--project <path-or-id>] [--provider <provider>] [--agent <agent>]
+    [--model <model>] [--external-session-id <id>] [--client <client>]
+  graphit mcp doctor [--project <path-or-id>] [--json]
 
 Commands discover .graphit/graphit.db from the current directory upward.
 Repeat --source-event to attach multiple evidence events.
@@ -61,6 +65,7 @@ async function main(): Promise<void> {
     strict: true,
     options: {
       name: { type: 'string' },
+      project: { type: 'string' },
       checkpoint: { type: 'string' },
       json: { type: 'boolean', default: false },
       help: { type: 'boolean', short: 'h', default: false },
@@ -81,8 +86,11 @@ async function main(): Promise<void> {
   });
   if (values.help) { console.log(usage); return; }
   const command = positionals[0];
-  const route = command === 'memory' || command === 'session' || command === 'code' ? `${command} ${positionals[1] ?? ''}` : command ?? '';
+  const route = command === 'mcp' && positionals[1] !== undefined ? `mcp ${positionals[1]}` :
+    command === 'memory' || command === 'session' || command === 'code' ? `${command} ${positionals[1] ?? ''}` : command ?? '';
   const routes: Record<string, { positionalCount: number; options: string[] }> = {
+    mcp: { positionalCount: 1, options: ['project', 'provider', 'agent', 'model', 'external-session-id', 'client'] },
+    'mcp doctor': { positionalCount: 2, options: ['project'] },
     init: { positionalCount: 1, options: ['name'] }, status: { positionalCount: 1, options: [] },
     checkpoint: { positionalCount: 1, options: ['name'] }, resume: { positionalCount: 1, options: ['checkpoint'] },
     handoff: { positionalCount: 1, options: [] },
@@ -106,6 +114,18 @@ async function main(): Promise<void> {
   if (!definition || positionals.length !== definition.positionalCount) throw new Error(`Invalid command\n${usage}`);
   for (const key of Object.keys(values)) {
     if (!['json', 'help', ...definition.options].includes(key)) throw new Error(`--${key} is not valid for ${route}`);
+  }
+  if (command === 'mcp') {
+    const metadata = Object.fromEntries(Object.entries({ provider: values.provider, agent_name: values.agent,
+      model_name: values.model, external_session_id: values['external-session-id'], client_name: values.client })
+      .filter((entry): entry is [string, string] => entry[1] !== undefined));
+    const options = { ...(values.project === undefined ? {} : { project: values.project }), metadata };
+    if (route === 'mcp doctor') {
+      const project = await openGraphit(options);
+      try { console.log(JSON.stringify(project.api.doctor(), null, 2)); }
+      finally { project.close(); }
+    } else await runStdio(options);
+    return;
   }
   const cwd = realpathSync(resolve(process.cwd()));
   const target = command === 'index' && positionals[1] !== undefined ? realpathSync(resolve(cwd, positionals[1])) : cwd;

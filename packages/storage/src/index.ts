@@ -49,6 +49,8 @@ export class EventStore {
   readonly #database: DatabaseSync;
   readonly #clock: () => string;
   readonly #projections = new Map<string, EventProjection>();
+  #transactionDepth = 0;
+  readonly #writerSessions = new Map<string, string>();
 
   constructor(path: string, options: StoreOptions = {}) {
     this.#clock = options.clock ?? (() => new Date().toISOString());
@@ -78,16 +80,50 @@ export class EventStore {
   }
 
   #transaction<T>(operation: () => T): T {
-    this.#database.exec('BEGIN IMMEDIATE');
+    const depth = this.#transactionDepth;
+    const savepoint = `graphit_nested_${depth}`;
+    this.#database.exec(depth === 0 ? 'BEGIN IMMEDIATE' : `SAVEPOINT ${savepoint}`);
+    this.#transactionDepth++;
     try {
       const result = operation();
       if (result instanceof Promise) throw new Error('Transactions must be synchronous');
-      this.#database.exec('COMMIT');
+      this.#database.exec(depth === 0 ? 'COMMIT' : `RELEASE ${savepoint}`);
       return result;
     } catch (error) {
-      this.#database.exec('ROLLBACK');
+      this.#database.exec(depth === 0 ? 'ROLLBACK' : `ROLLBACK TO ${savepoint}; RELEASE ${savepoint}`);
       throw error;
+    } finally {
+      this.#transactionDepth--;
     }
+  }
+
+  /** Atomically attribute a synchronous unit of work to this writer's session.
+   * If another writer became active, append a fresh session segment; never rewrite history.
+   * Nested service transactions use savepoints and remain inside this write lock.
+   */
+  withWriterSession<T>(projectId: string, metadata: SessionMetadata, operation: () => T): T {
+    const parsed = sessionMetadataSchema.parse(metadata);
+    const key = canonicalJson({ projectId, metadata: parsed });
+    return this.#transaction(() => {
+      const state = this.getState(projectId);
+      if (state.active_session_id !== this.#writerSessions.get(key)) {
+        const session = this.startSession(projectId, parsed);
+        this.#writerSessions.set(key, session.id);
+      }
+      return operation();
+    });
+  }
+
+  /** Read-only diagnostics; never repairs projections or appends source events. */
+  diagnostics(projectId: string) {
+    const state = this.getState(projectId);
+    return {
+      database_reachable: true, project_initialized: state.project !== null,
+      journal_mode: String(this.#database.prepare('PRAGMA journal_mode').get()?.journal_mode),
+      code_index_present: this.readEvents(projectId).some((event) => event.event_type === 'code.index.completed'),
+      retrieval_index_present: !!this.#database.prepare('SELECT 1 FROM retrieval_projection_state WHERE project_id = ?').get(projectId),
+      schema_versions: this.#database.prepare('SELECT version, name FROM schema_migrations ORDER BY version').all(),
+    };
   }
 
   /** A project-scoped unit of work; sequence allocation and derived writes share its lock. */
