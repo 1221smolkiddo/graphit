@@ -1,0 +1,245 @@
+{
+  "measured_at": "2026-09-26T23:43:14.420Z",
+  "node": "v22.17.0",
+  "platform": "win32",
+  "command": "node examples/context-demo.mjs",
+  "exit_code": 0,
+  "report": {
+    "retrieval": [
+      {
+        "query": "where is login handled?",
+        "recall_at_k": 1,
+        "mrr": 1,
+        "required_ids": [
+          "symbol:0b44fedd718a2ab6314c40d4abf88a524624aaacd0eccf3dca953fc00a55ae8e"
+        ],
+        "retrieval_ms": 296.2473999999993,
+        "ppr_ms": 6.488499999999476,
+        "context_quality": {
+          "passed": true,
+          "required_evidence_recall": 1,
+          "missing": []
+        },
+        "selected_tokens": 3865
+      },
+      {
+        "query": "what calls createSession?",
+        "recall_at_k": 1,
+        "mrr": 0.2,
+        "required_ids": [
+          "symbol:0b44fedd718a2ab6314c40d4abf88a524624aaacd0eccf3dca953fc00a55ae8e"
+        ],
+        "retrieval_ms": 85.67849999999999,
+        "ppr_ms": 0.7127000000000407,
+        "context_quality": {
+          "passed": true,
+          "required_evidence_recall": 1,
+          "missing": []
+        },
+        "selected_tokens": 3906
+      },
+      {
+        "query": "continue implementing refresh rotation",
+        "recall_at_k": 1,
+        "mrr": 1,
+        "required_ids": [
+          "memory:2ebc7e432c319016aa2ea8019982a60cb9810acdea2e0ef990e38479bd9a4bfc",
+          "memory:3d14c0819c4d48bb3f93f7c55aac07580429443c76626e57945de402efb80cf7",
+          "memory:8963ffc21600c4243bf3e2fa6c11fc443d9b07b26c2c1362aa9283986e0acdec",
+          "memory:9d5df54c858cf8ec84297117789a588bf2393098003f46303672051e13c4962b",
+          "memory:6e6d98873282734f9dd7f2e3224ef3cb835d1c12b3d043ed9ca6c081da335daa",
+          "symbol:8262b9f8e4dd04b914d8fe6f44e580d03f5810e4b8efb08d8b47d351f26cc173"
+        ],
+        "retrieval_ms": 126.21050000000014,
+        "ppr_ms": 2.8355000000001382,
+        "context_quality": {
+          "passed": true,
+          "required_evidence_recall": 1,
+          "missing": []
+        },
+        "selected_tokens": 1961
+      },
+      {
+        "query": "why are we using SQLite?",
+        "recall_at_k": 1,
+        "mrr": 1,
+        "required_ids": [
+          "memory:9d5df54c858cf8ec84297117789a588bf2393098003f46303672051e13c4962b"
+        ],
+        "retrieval_ms": 77.1216000000004,
+        "ppr_ms": 0.8485000000000582,
+        "context_quality": {
+          "passed": true,
+          "required_evidence_recall": 1,
+          "missing": []
+        },
+        "selected_tokens": 3955
+      },
+      {
+        "query": "what is affected by changing refreshSession?",
+        "recall_at_k": 1,
+        "mrr": 0.2,
+        "required_ids": [
+          "symbol:d2b0555cb9135a28a5a515723e6728a835f576eb667827b8fe6e26055eaac48f",
+          "symbol:0b44fedd718a2ab6314c40d4abf88a524624aaacd0eccf3dca953fc00a55ae8e"
+        ],
+        "retrieval_ms": 76.3809999999994,
+        "ppr_ms": 0.30680000000029395,
+        "context_quality": {
+          "passed": true,
+          "required_evidence_recall": 1,
+          "missing": []
+        },
+        "selected_tokens": 3878
+      }
+    ],
+    "budgets": [
+      {
+        "estimator": "graphit:utf8-bytes-per-four",
+        "estimator_version": "1",
+        "requested_tokens": 8000,
+        "estimated_tokens": 7994,
+        "candidate_tokens": 27664,
+        "reduction_ratio": 0.711032,
+        "budget_insufficient": false,
+        "passed": true,
+        "required_evidence_recall": 1,
+        "missing": [],
+        "compiler_quality": {
+          "passed": true,
+          "required_evidence_recall": 1,
+          "missing": []
+        },
+        "evidence_count": 20,
+        "retrieval_ms": 118.22359999999935,
+        "ppr_ms": 0.846399999998539,
+        "packing_ms": 666.4120000000003,
+        "total_ms": 784.7200999999986
+      },
+      {
+        "estimator": "graphit:utf8-bytes-per-four",
+        "estimator_version": "1",
+        "requested_tokens": 4000,
+        "estimated_tokens": 3993,
+        "candidate_tokens": 27664,
+        "reduction_ratio": 0.855661,
+        "budget_insufficient": false,
+        "passed": true,
+        "required_evidence_recall": 1,
+        "missing": [],
+        "compiler_quality": {
+          "passed": true,
+          "required_evidence_recall": 1,
+          "missing": []
+        },
+        "evidence_count": 14,
+        "retrieval_ms": 108.42879999999968,
+        "ppr_ms": 0.9606000000003405,
+        "packing_ms": 558.1910000000007,
+        "total_ms": 666.6968000000015
+      },
+      {
+        "estimator": "graphit:utf8-bytes-per-four",
+        "estimator_version": "1",
+        "requested_tokens": 2000,
+        "estimated_tokens": 1961,
+        "candidate_tokens": 27664,
+        "reduction_ratio": 0.929114,
+        "budget_insufficient": false,
+        "passed": true,
+        "required_evidence_recall": 1,
+        "missing": [],
+        "compiler_quality": {
+          "passed": true,
+          "required_evidence_recall": 1,
+          "missing": []
+        },
+        "evidence_count": 8,
+        "retrieval_ms": 93.84850000000006,
+        "ppr_ms": 1.0300999999999476,
+        "packing_ms": 540.7518999999993,
+        "total_ms": 634.7183999999997
+      },
+      {
+        "estimator": "graphit:utf8-bytes-per-four",
+        "estimator_version": "1",
+        "requested_tokens": 1000,
+        "estimated_tokens": 997,
+        "candidate_tokens": 27664,
+        "reduction_ratio": 0.96396,
+        "budget_insufficient": true,
+        "passed": false,
+        "required_evidence_recall": 0.6666666666666667,
+        "missing": [
+          "memory:9d5df54c858cf8ec84297117789a588bf2393098003f46303672051e13c4962b",
+          "symbol:8262b9f8e4dd04b914d8fe6f44e580d03f5810e4b8efb08d8b47d351f26cc173"
+        ],
+        "compiler_quality": {
+          "passed": false,
+          "required_evidence_recall": 0.5714285714285714,
+          "missing": [
+            "memory:9d5df54c858cf8ec84297117789a588bf2393098003f46303672051e13c4962b",
+            "path:15392faa0049d785bf50e9c5d0e0ddea39a20f5a4177f8934992ebdc4ed35790",
+            "symbol:8262b9f8e4dd04b914d8fe6f44e580d03f5810e4b8efb08d8b47d351f26cc173"
+          ]
+        },
+        "evidence_count": 4,
+        "retrieval_ms": 140.08330000000024,
+        "ppr_ms": 27.96509999999944,
+        "packing_ms": 816.9322000000011,
+        "total_ms": 957.0797999999995
+      },
+      {
+        "estimator": "graphit:utf8-bytes-per-four",
+        "estimator_version": "1",
+        "requested_tokens": 500,
+        "estimated_tokens": 493,
+        "candidate_tokens": 27663,
+        "reduction_ratio": 0.982178,
+        "budget_insufficient": true,
+        "passed": false,
+        "required_evidence_recall": 0.16666666666666663,
+        "missing": [
+          "memory:2ebc7e432c319016aa2ea8019982a60cb9810acdea2e0ef990e38479bd9a4bfc",
+          "memory:3d14c0819c4d48bb3f93f7c55aac07580429443c76626e57945de402efb80cf7",
+          "memory:8963ffc21600c4243bf3e2fa6c11fc443d9b07b26c2c1362aa9283986e0acdec",
+          "memory:9d5df54c858cf8ec84297117789a588bf2393098003f46303672051e13c4962b",
+          "symbol:8262b9f8e4dd04b914d8fe6f44e580d03f5810e4b8efb08d8b47d351f26cc173"
+        ],
+        "compiler_quality": {
+          "passed": false,
+          "required_evidence_recall": 0.1428571428571429,
+          "missing": [
+            "memory:2ebc7e432c319016aa2ea8019982a60cb9810acdea2e0ef990e38479bd9a4bfc",
+            "memory:3d14c0819c4d48bb3f93f7c55aac07580429443c76626e57945de402efb80cf7",
+            "memory:8963ffc21600c4243bf3e2fa6c11fc443d9b07b26c2c1362aa9283986e0acdec",
+            "memory:9d5df54c858cf8ec84297117789a588bf2393098003f46303672051e13c4962b",
+            "path:15392faa0049d785bf50e9c5d0e0ddea39a20f5a4177f8934992ebdc4ed35790",
+            "symbol:8262b9f8e4dd04b914d8fe6f44e580d03f5810e4b8efb08d8b47d351f26cc173"
+          ]
+        },
+        "evidence_count": 1,
+        "retrieval_ms": 183.6885999999995,
+        "ppr_ms": 0.8649999999997817,
+        "packing_ms": 356.8027000000002,
+        "total_ms": 540.645199999999
+      }
+    ],
+    "cli": {
+      "budget": {
+        "budget_insufficient": false,
+        "candidate_tokens": 27664,
+        "estimated_tokens": 1961,
+        "estimator": "graphit:utf8-bytes-per-four",
+        "estimator_version": "1",
+        "reduction_ratio": 0.929114,
+        "requested_tokens": 2000
+      },
+      "quality": {
+        "passed": true,
+        "required_evidence_recall": 1,
+        "missing": []
+      }
+    }
+  }
+}

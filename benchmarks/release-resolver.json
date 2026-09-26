@@ -1,0 +1,45 @@
+{
+  "fixture": "fixtures/repos/p6c-resolution",
+  "baseline_commit": null,
+  "measured_at": "2026-09-26T23:43:17.540Z",
+  "files": 9,
+  "resolved_edges": 21,
+  "calls": [
+    {
+      "from": "aliasCall",
+      "to": "leaf.ts:target"
+    },
+    {
+      "from": "barrelCall",
+      "to": "leaf.ts:target"
+    },
+    {
+      "from": "chainCall",
+      "to": "leaf.ts:target"
+    },
+    {
+      "from": "namespaceBarrelCall",
+      "to": "leaf.ts:target"
+    },
+    {
+      "from": "namespaceCall",
+      "to": "leaf.ts:target"
+    }
+  ],
+  "expected_calls": 5,
+  "false_positive_calls": 0,
+  "unresolved": {
+    "total": 13,
+    "counts": {
+      "external_package": 2,
+      "dynamic_call": 2,
+      "ambiguous_local_symbol": 1,
+      "namespace_member_ambiguity": 1,
+      "unsupported_syntax_pattern": 0,
+      "re_export_resolution": 7,
+      "aliasing": 0,
+      "parser_limitation": 0,
+      "missing_local_module": 0
+    }
+  }
+}

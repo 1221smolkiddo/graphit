@@ -14,7 +14,7 @@ assert.ok(report.retrieval.every(query => query.context_quality.passed));
 const budget = report.budgets.find(budget => budget.requested_tokens === 2000);
 assert.equal(budget.required_evidence_recall, 1);
 assert.ok(budget.reduction_ratio > 0.92);
-writeFileSync('benchmarks/p6c-p3-regression.json', JSON.stringify({
+writeFileSync(process.argv[2] ?? 'benchmarks/p6c-p3-regression.json', JSON.stringify({
   measured_at: new Date().toISOString(), node: process.version, platform: process.platform,
   command: 'node examples/context-demo.mjs', exit_code: result.status, report,
 }, null, 2) + '\n');

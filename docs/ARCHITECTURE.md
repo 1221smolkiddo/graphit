@@ -1,5 +1,13 @@
 # Architecture
 
+Stable 0.1.0 release preparation adds a validated unchanged-index fast path:
+completion compares the graph hash and canonical observation identities, verifies
+source blobs, and advances index-run state without resolving or rewriting the
+unchanged graph. A new start/completion pair remains canonical. Changed/deleted
+files retain full resolution and projection publication; repair still fully
+rebuilds from source. No migration or canonical format change is involved.
+See [release profiling and verification](RELEASE.md) for measurements and limits.
+
 ## P6C boundaries
 
 Optional encrypted transport wraps, rather than replaces, the original canonical

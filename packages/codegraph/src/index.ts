@@ -36,6 +36,21 @@ export class CodeGraphService {
         }
         if (last.event_type === 'code.index.completed') {
           const cached = this.#read(database, projectId);
+          const completed = codePayloadSchemas['code.index.completed'].parse(last.payload);
+          // A no-change run cannot change any observation or resolved edge.
+          // Validate the cached graph and its canonical observation identities
+          // inside the completion transaction before retaining derived rows.
+          if (completed.files_changed === 0 && completed.files_deleted === 0 &&
+              cached.graph_hash !== null && cached.graph_hash === contentHash(cached.graph) &&
+              cached.graph.files.length === history.active.size &&
+              cached.graph.files.every(file => history.active.has(file.extraction.path) &&
+                canonicalJson(history.active.get(file.extraction.path)) === canonicalJson(file.observation))) {
+            for (const file of cached.graph.files) {
+              if (readSourceBlob(database, file.observation.content_hash).byte_length !== file.observation.byte_length) throw new Error('Observation byte length does not match source blob');
+            }
+            this.#persistRuns(database, projectId, history);
+            return;
+          }
           const graph = this.#build(database, projectId, history, cached.graph.files, false);
           this.#persist(database, projectId, graph, history);
         } else this.#persistRuns(database, projectId, history);

@@ -1,0 +1,57 @@
+name: Prepare or publish stable release
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: 'Leave blank for verification only; publishing requires: publish graphit@0.1.0'
+        required: false
+        default: ''
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: graphit-stable-release
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    uses: ./.github/workflows/ci.yml
+
+  publish:
+    needs: verify
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      inputs.confirmation == 'publish graphit@0.1.0' &&
+      vars.ENABLE_NPM_PUBLISH == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '22'
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+      # Trusted publishing requires npm >=11.5.1 and Node >=22.14.
+      - run: npm install --global npm@11.6.2
+      - run: npm run release:preflight
+      - run: npm ci
+      - run: npm test
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run build
+      - run: npm pack
+      - run: npm run audit:pack
+      - run: npm run verify:packed
+      # Never uses an npm token secret. Configure this exact workflow/environment
+      # as a trusted publisher only after package ownership has been resolved.
+      - run: npm publish ./graphit-0.1.0.tgz --access public --provenance

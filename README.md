@@ -12,9 +12,19 @@ about 1.47 GB. Full JSON measurements and reproduction scripts are in
 
 ## Install
 
+Stable release preparation adds a Node 22 Windows/Ubuntu/macOS CI matrix and a
+manual, protected OIDC publishing workflow. Remote platform results are still
+pending; publishing is blocked by the existing npm name/version. See
+[release checklist](docs/RELEASE.md).
+
+Graphit is local-first and sends no telemetry by default. The live SQLite project
+database (including WAL/SHM) is **not encrypted at rest** in 0.1.0. Use OS disk
+encryption and filesystem permissions to protect it. Optional encrypted exports
+use AES-256-GCM plus scrypt; they do not encrypt the live database.
+
 Requires Node.js **22.0.0 or newer** and a local filesystem suitable for SQLite WAL. The package engine, CLI/storage checks and doctor use the same policy. Git is optional for commit metadata.
 
-This build is **not published**. The requested name `graphit` is already registered on npm to another maintainer; `npm install -g graphit` currently installs that other package. Until ownership/name and repository metadata are settled, install the verified local tarball:
+This build is **not published**. The requested name `graphit` and version `0.1.0` are already registered on npm to another maintainer; `npm install -g graphit` currently installs that other package. Until an available package identity is settled, install the verified local tarball:
 
 ```sh
 npm install -g ./graphit-0.1.0.tgz

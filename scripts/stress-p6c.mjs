@@ -5,6 +5,7 @@ import { pathToFileURL } from 'node:url';
 import { performance } from 'node:perf_hooks';
 import process from 'node:process';
 import console from 'node:console';
+import { Session } from 'node:inspector';
 
 // Optional installed package root exercises exactly the packed code.
 const installed = process.env.GRAPHIT_PACKAGE_ROOT;
@@ -22,12 +23,32 @@ const root = mkdtempSync(join(tmpdir(), 'graphit-p6c-stress-'));
 const source = (i, changed = false) => Array.from({ length: 20 }, (_, n) =>
   'export function work' + i + '_' + n + '() { return ' + (n ? 'work' + i + '_' + (n - 1) + '()' : changed ? '2' : '1') + '; }').join('\n') + '\n';
 const samples = [];
+let sqlProfile = null;
+const originalPrepare = SqliteDatabase.prototype.prepare;
+if (process.env.GRAPHIT_PROFILE === '1') SqliteDatabase.prototype.prepare = function (sql) {
+  const start = performance.now(); const statement = originalPrepare.call(this, sql);
+  const key = sql.replace(/\s+/g, ' ').trim();
+  const entry = sqlProfile && (sqlProfile[key] ??= { prepare_count: 0, calls: 0, elapsed_ms: 0 });
+  if (entry) { entry.prepare_count++; entry.elapsed_ms += performance.now() - start; }
+  for (const method of ['get', 'all', 'run']) {
+    const operation = statement[method];
+    statement[method] = (...args) => {
+      const start = performance.now();
+      try { return operation(...args); }
+      finally { if (entry) { entry.calls++; entry.elapsed_ms += performance.now() - start; } }
+    };
+  }
+  return statement;
+};
 const measure = (name, operation) => {
   console.error('Starting ' + name);
+  sqlProfile = process.env.GRAPHIT_PROFILE === '1' ? {} : null;
   const start = performance.now();
   const result = operation();
   const elapsed_ms = performance.now() - start;
-  samples.push({ name, elapsed_ms, memory_after: process.memoryUsage(), ...(result?.metrics ? { index_metrics: result.metrics } : {}) });
+  samples.push({ name, elapsed_ms, memory_after: process.memoryUsage(), ...(result?.metrics ? { index_metrics: result.metrics } : {}),
+    ...(sqlProfile ? { sql_profile: sqlProfile } : {}) });
+  sqlProfile = null;
   console.error(name + ': ' + elapsed_ms.toFixed(2) + ' ms');
   if (result?.status && result.status !== 'completed') throw new Error(JSON.stringify(result));
   return result;
@@ -45,7 +66,22 @@ try {
   measure('initial_index', () => indexer.index(id, root));
   const snapshot = measure('read_graph', () => graph.getGraph(id));
   measure('assemble_graph', () => assembleGraph(id, snapshot.files));
+  let profiler;
+  if (process.env.GRAPHIT_PROFILE === '1') {
+    profiler = new Session(); profiler.connect();
+    profiler.post('Profiler.enable'); profiler.post('Profiler.start');
+  }
   measure('unchanged_index', () => indexer.index(id, root));
+  if (profiler) {
+    const profile = await new Promise((resolve, reject) => profiler.post('Profiler.stop', (error, result) => error ? reject(error) : resolve(result.profile)));
+    const counts = new Map();
+    for (const [i, sample] of profile.samples.entries()) counts.set(sample, (counts.get(sample) ?? 0) + profile.timeDeltas[i]);
+    samples.at(-1).cpu_self_ms = profile.nodes.map(node => ({ function: node.callFrame.functionName,
+      file: node.callFrame.url.replaceAll('\\', '/').split('/').slice(-4).join('/'),
+      line: node.callFrame.lineNumber + 1, self_ms: (counts.get(node.id) ?? 0) / 1000 }))
+      .filter(node => node.self_ms > 0).sort((a, b) => b.self_ms - a.self_ms).slice(0, 40);
+    profiler.disconnect();
+  }
   writeFileSync(join(root, 'file0.ts'), source(0, true));
   measure('one_file_index', () => indexer.index(id, root));
   const retrieval = new RetrievalService(store, memory, graph);
@@ -82,7 +118,7 @@ try {
       files: count, functions_per_file: 20, symbols: snapshot.symbols.length, edges: snapshot.edges.length },
     samples, queries, bm25_hit_count: bm25.length, archive_ms, encrypted_archive_ms, sizes,
     peak_rss_bytes: process.resourceUsage().maxRSS * 1024,
-    notes: ['Single local run; not a cross-platform SLA.', 'Unchanged indexing still validates and republishes derived projections.',
+    notes: ['Single local run; not a cross-platform SLA.', 'Unchanged indexing validates graph/source integrity and appends run events; valid graph rows can be reused.',
       'retrieval_ms includes PPR and projection validation; bm25_sql_only isolates FTS5.', 'Memory samples are process-wide; maxRSS is OS high-water mark.'] };
   writeFileSync(output, JSON.stringify(report, null, 2) + '\n');
   console.log(JSON.stringify(report, null, 2));

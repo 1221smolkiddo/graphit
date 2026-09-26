@@ -1,0 +1,1211 @@
+{
+  "schema_version": 1,
+  "measured_at": "2026-09-26T23:38:18.765Z",
+  "node": "v22.17.0",
+  "platform": "win32",
+  "arch": "x64",
+  "installed_package": false,
+  "fixture": {
+    "generator": "scripts/stress-p6c.mjs",
+    "files": 1000,
+    "functions_per_file": 20,
+    "symbols": 22000,
+    "edges": 80000
+  },
+  "samples": [
+    {
+      "name": "initial_index",
+      "elapsed_ms": 226131.44269999999,
+      "memory_after": {
+        "rss": 557768704,
+        "heapTotal": 372629504,
+        "heapUsed": 345296704,
+        "external": 37035574,
+        "arrayBuffers": 1182663
+      },
+      "index_metrics": {
+        "files_scanned": 1000,
+        "files_parsed": 1000,
+        "files_reused": 0,
+        "bytes_read": 1044710,
+        "symbols_extracted": 22000,
+        "edges_extracted": 80000,
+        "duration_ms": 216873.3299
+      },
+      "sql_profile": {
+        "SELECT * FROM events ORDER BY project_id, sequence": {
+          "prepare_count": 1,
+          "calls": 1,
+          "elapsed_ms": 0.24280000000010205
+        },
+        "SELECT * FROM events WHERE project_id = ? ORDER BY sequence": {
+          "prepare_count": 2008,
+          "calls": 2008,
+          "elapsed_ms": 3964.3735999999462
+        },
+        "SELECT * FROM code_projection_state WHERE project_id = ?": {
+          "prepare_count": 2,
+          "calls": 2,
+          "elapsed_ms": 0.6524000000092656
+        },
+        "SELECT extraction_json FROM code_files WHERE project_id = ? ORDER BY path": {
+          "prepare_count": 2,
+          "calls": 2,
+          "elapsed_ms": 0.24379999999871416
+        },
+        "SELECT data FROM code_symbols WHERE project_id = ? ORDER BY logical_symbol_id": {
+          "prepare_count": 2,
+          "calls": 2,
+          "elapsed_ms": 0.08620000001076278
+        },
+        "SELECT data FROM code_edges WHERE project_id = ? ORDER BY id": {
+          "prepare_count": 2,
+          "calls": 2,
+          "elapsed_ms": 0.064000000004512
+        },
+        "SELECT data FROM code_imports WHERE project_id = ? ORDER BY id": {
+          "prepare_count": 2,
+          "calls": 2,
+          "elapsed_ms": 0.05819999997902414
+        },
+        "SELECT data FROM code_index_runs WHERE project_id = ? ORDER BY started_sequence": {
+          "prepare_count": 2,
+          "calls": 2,
+          "elapsed_ms": 0.9212000000107992
+        },
+        "INSERT INTO events (id, project_id, session_id, sequence, event_type, payload, created_at, content_hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?)": {
+          "prepare_count": 1002,
+          "calls": 1002,
+          "elapsed_ms": 321.6900000000586
+        },
+        "INSERT INTO projects (id, name, root_path, created_at, active_session_id, last_sequence) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET name = excluded.name, root_path = excluded.root_path, created_at = excluded.created_at, active_session_id = excluded.active_session_id, last_sequence = excluded.last_sequence": {
+          "prepare_count": 1002,
+          "calls": 1002,
+          "elapsed_ms": 73.1873000001566
+        },
+        "DELETE FROM checkpoints WHERE project_id = ?": {
+          "prepare_count": 1002,
+          "calls": 1002,
+          "elapsed_ms": 27.914200000186725
+        },
+        "DELETE FROM sessions WHERE project_id = ?": {
+          "prepare_count": 1002,
+          "calls": 1002,
+          "elapsed_ms": 31.78949999979409
+        },
+        "INSERT INTO sessions (id, project_id, created_at, resumed_from_checkpoint_id, provider, agent_name, model_name, external_session_id, client_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)": {
+          "prepare_count": 1002,
+          "calls": 1002,
+          "elapsed_ms": 33.72449999964397
+        },
+        "INSERT INTO checkpoints (id, project_id, session_id, name, through_sequence, state_hash, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)": {
+          "prepare_count": 1002,
+          "calls": 0,
+          "elapsed_ms": 24.132199999788327
+        },
+        "DELETE FROM memory_relations WHERE project_id = ?": {
+          "prepare_count": 1002,
+          "calls": 1002,
+          "elapsed_ms": 141.37550000004626
+        },
+        "DELETE FROM memory_entities WHERE project_id = ?": {
+          "prepare_count": 1002,
+          "calls": 1002,
+          "elapsed_ms": 28.263999999887687
+        },
+        "INSERT INTO memory_entities (id, project_id, entity_type, content, status, created_at, source_event_ids, created_by_session_id, valid_from_sequence, valid_to_sequence, superseded_by, metadata) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)": {
+          "prepare_count": 1002,
+          "calls": 0,
+          "elapsed_ms": 70.81940000001691
+        },
+        "INSERT INTO memory_relations (id, project_id, from_entity_id, to_entity_id, relation_type, source_event_ids, created_at, created_by_session_id, valid_from_sequence, valid_to_sequence, metadata) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)": {
+          "prepare_count": 1002,
+          "calls": 0,
+          "elapsed_ms": 35.58730000017363
+        },
+        "DELETE FROM code_index_runs WHERE project_id = ?": {
+          "prepare_count": 1003,
+          "calls": 1003,
+          "elapsed_ms": 54.24400000001833
+        },
+        "INSERT INTO code_index_runs (project_id, index_run_id, started_sequence, data) VALUES (?, ?, ?, ?)": {
+          "prepare_count": 1002,
+          "calls": 1002,
+          "elapsed_ms": 55.805299999688145
+        },
+        "UPDATE code_projection_state SET last_event_sequence = ? WHERE project_id = ?": {
+          "prepare_count": 1002,
+          "calls": 1002,
+          "elapsed_ms": 28.00790000074528
+        },
+        "SELECT 1 FROM source_blobs WHERE content_hash = ?": {
+          "prepare_count": 1000,
+          "calls": 1000,
+          "elapsed_ms": 29.819199999899865
+        },
+        "INSERT INTO source_blobs (content_hash, byte_length, content, created_at) VALUES (?, ?, ?, ?)": {
+          "prepare_count": 1000,
+          "calls": 1000,
+          "elapsed_ms": 70.7683000002362
+        },
+        "SELECT * FROM source_blobs WHERE content_hash = ?": {
+          "prepare_count": 3000,
+          "calls": 3000,
+          "elapsed_ms": 488.0137999993758
+        },
+        "DELETE FROM code_files WHERE project_id = ?": {
+          "prepare_count": 1,
+          "calls": 1,
+          "elapsed_ms": 0.1411999999836553
+        },
+        "DELETE FROM code_symbols WHERE project_id = ?": {
+          "prepare_count": 1,
+          "calls": 1,
+          "elapsed_ms": 0.02450000002863817
+        },
+        "DELETE FROM code_edges WHERE project_id = ?": {
+          "prepare_count": 1,
+          "calls": 1,
+          "elapsed_ms": 0.02750000002561137
+        },
+        "DELETE FROM code_imports WHERE project_id = ?": {
+          "prepare_count": 1,
+          "calls": 1,
+          "elapsed_ms": 0.014600000024074689
+        },
+        "DELETE FROM code_projection_state WHERE project_id = ?": {
+          "prepare_count": 1,
+          "calls": 1,
+          "elapsed_ms": 0.014300000009825453
+        },
+        "INSERT INTO code_files (project_id, path, file_id, content_hash, observation_event_id, extraction_hash, extraction_json) VALUES (?, ?, ?, ?, ?, ?, ?)": {
+          "prepare_count": 1,
+          "calls": 1000,
+          "elapsed_ms": 72.09529999972438
+        },
+        "INSERT INTO code_symbols (project_id, logical_symbol_id, symbol_version_id, file_id, name, kind, data) VALUES (?, ?, ?, ?, ?, ?, ?)": {
+          "prepare_count": 1,
+          "calls": 22000,
+          "elapsed_ms": 341.43109999678563
+        },
+        "INSERT INTO code_edges (project_id, id, source_id, target_id, edge_type, data) VALUES (?, ?, ?, ?, ?, ?)": {
+          "prepare_count": 1,
+          "calls": 80000,
+          "elapsed_ms": 1824.3886999971874
+        },
+        "INSERT INTO code_imports (project_id, id, file_id, data) VALUES (?, ?, ?, ?)": {
+          "prepare_count": 1,
+          "calls": 0,
+          "elapsed_ms": 0.09670000002370216
+        },
+        "INSERT INTO code_projection_state (project_id, last_event_sequence, graph_hash, diagnostics_json) VALUES (?, ?, ?, ?)": {
+          "prepare_count": 1,
+          "calls": 1,
+          "elapsed_ms": 0.17459999999846332
+        }
+      }
+    },
+    {
+      "name": "read_graph",
+      "elapsed_ms": 2009.6571000000113,
+      "memory_after": {
+        "rss": 786243584,
+        "heapTotal": 541569024,
+        "heapUsed": 498401960,
+        "external": 37969962,
+        "arrayBuffers": 2117011
+      },
+      "sql_profile": {
+        "SELECT * FROM events WHERE project_id = ? ORDER BY sequence": {
+          "prepare_count": 1,
+          "calls": 1,
+          "elapsed_ms": 3.0100000000093132
+        },
+        "SELECT * FROM code_projection_state WHERE project_id = ?": {
+          "prepare_count": 1,
+          "calls": 1,
+          "elapsed_ms": 0.31930000000284053
+        },
+        "SELECT extraction_json FROM code_files WHERE project_id = ? ORDER BY path": {
+          "prepare_count": 1,
+          "calls": 1,
+          "elapsed_ms": 18.723999999987427
+        },
+        "SELECT data FROM code_symbols WHERE project_id = ? ORDER BY logical_symbol_id": {
+          "prepare_count": 1,
+          "calls": 1,
+          "elapsed_ms": 71.2890999999654
+        },
+        "SELECT data FROM code_edges WHERE project_id = ? ORDER BY id": {
+          "prepare_count": 1,
+          "calls": 1,
+          "elapsed_ms": 308.1015999999945
+        },
+        "SELECT data FROM code_imports WHERE project_id = ? ORDER BY id": {
+          "prepare_count": 1,
+          "calls": 1,
+          "elapsed_ms": 0.22619999997550622
+        },
+        "SELECT data FROM code_index_runs WHERE project_id = ? ORDER BY started_sequence": {
+          "prepare_count": 1,
+          "calls": 1,
+          "elapsed_ms": 0.1112000000430271
+        },
+        "SELECT * FROM source_blobs WHERE content_hash = ?": {
+          "prepare_count": 1000,
+          "calls": 1000,
+          "elapsed_ms": 34.76770000118995
+        }
+      }
+    },
+    {
+      "name": "assemble_graph",
+      "elapsed_ms": 1272.001900000003,
+      "memory_after": {
+        "rss": 551251968,
+        "heapTotal": 245288960,
+        "heapUsed": 139210328,
+        "external": 35880542,
+        "arrayBuffers": 27591
+      },
+      "sql_profile": {}
+    },
+    {
+      "name": "unchanged_index",
+      "elapsed_ms": 19316.29800000001,
+      "memory_after": {
+        "rss": 777297920,
+        "heapTotal": 420384768,
+        "heapUsed": 279543736,
+        "external": 35880542,
+        "arrayBuffers": 27591
+      },
+      "index_metrics": {
+        "files_scanned": 1000,
+        "files_parsed": 0,
+        "files_reused": 1000,
+        "bytes_read": 1044710,
+        "symbols_extracted": 0,
+        "edges_extracted": 80000,
+        "duration_ms": 5351.756200000003
+      },
+      "sql_profile": {
+        "SELECT * FROM events ORDER BY project_id, sequence": {
+          "prepare_count": 1,
+          "calls": 1,
+          "elapsed_ms": 5.0213000000221655
+        },
+        "SELECT * FROM events WHERE project_id = ? ORDER BY sequence": {
+          "prepare_count": 8,
+          "calls": 8,
+          "elapsed_ms": 155.09840000004624
+        },
+        "SELECT * FROM code_projection_state WHERE project_id = ?": {
+          "prepare_count": 2,
+          "calls": 2,
+          "elapsed_ms": 0.7788000000000466
+        },
+        "SELECT extraction_json FROM code_files WHERE project_id = ? ORDER BY path": {
+          "prepare_count": 2,
+          "calls": 2,
+          "elapsed_ms": 54.032700000010664
+        },
+        "SELECT data FROM code_symbols WHERE project_id = ? ORDER BY logical_symbol_id": {
+          "prepare_count": 2,
+          "calls": 2,
+          "elapsed_ms": 178.02229999998235
+        },
+        "SELECT data FROM code_edges WHERE project_id = ? ORDER BY id": {
+          "prepare_count": 2,
+          "calls": 2,
+          "elapsed_ms": 593.2964000000211
+        },
+        "SELECT data FROM code_imports WHERE project_id = ? ORDER BY id": {
+          "prepare_count": 2,
+          "calls": 2,
+          "elapsed_ms": 0.6184999999823049
+        },
+        "SELECT data FROM code_index_runs WHERE project_id = ? ORDER BY started_sequence": {
+          "prepare_count": 2,
+          "calls": 2,
+          "elapsed_ms": 0.31780000001890585
+        },
+        "SELECT * FROM source_blobs WHERE content_hash = ?": {
+          "prepare_count": 2000,
+          "calls": 2000,
+          "elapsed_ms": 202.5333999998693
+        },
+        "INSERT INTO events (id, project_id, session_id, sequence, event_type, payload, created_at, content_hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?)": {
+          "prepare_count": 2,
+          "calls": 2,
+          "elapsed_ms": 2.19729999997071
+        },
+        "INSERT INTO projects (id, name, root_path, created_at, active_session_id, last_sequence) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET name = excluded.name, root_path = excluded.root_path, created_at = excluded.created_at, active_session_id = excluded.active_session_id, last_sequence = excluded.last_sequence": {
+          "prepare_count": 2,
+          "calls": 2,
+          "elapsed_ms": 0.941099999967264
+        },
+        "DELETE FROM checkpoints WHERE project_id = ?": {
+          "prepare_count": 2,
+          "calls": 2,
+          "elapsed_ms": 0.12179999999352731
+        },
+        "DELETE FROM sessions WHERE project_id = ?": {
+          "prepare_count": 2,
+          "calls": 2,
+          "elapsed_ms": 0.09260000000358559
+        },
+        "INSERT INTO sessions (id, project_id, created_at, resumed_from_checkpoint_id, provider, agent_name, model_name, external_session_id, client_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)": {
+          "prepare_count": 2,
+          "calls": 2,
+          "elapsed_ms": 0.06720000001951121
+        },
+        "INSERT INTO checkpoints (id, project_id, session_id, name, through_sequence, state_hash, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)": {
+          "prepare_count": 2,
+          "calls": 0,
+          "elapsed_ms": 0.0560000000114087
+        },
+        "DELETE FROM memory_relations WHERE project_id = ?": {
+          "prepare_count": 2,
+          "calls": 2,
+          "elapsed_ms": 0.2569000000366941
+        },
+        "DELETE FROM memory_entities WHERE project_id = ?": {
+          "prepare_count": 2,
+          "calls": 2,
+          "elapsed_ms": 0.055299999978160486
+        },
+        "INSERT INTO memory_entities (id, project_id, entity_type, content, status, created_at, source_event_ids, created_by_session_id, valid_from_sequence, valid_to_sequence, superseded_by, metadata) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)": {
+          "prepare_count": 2,
+          "calls": 0,
+          "elapsed_ms": 0.12059999999473803
+        },
+        "INSERT INTO memory_relations (id, project_id, from_entity_id, to_entity_id, relation_type, source_event_ids, created_at, created_by_session_id, valid_from_sequence, valid_to_sequence, metadata) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)": {
+          "prepare_count": 2,
+          "calls": 0,
+          "elapsed_ms": 0.06289999998989515
+        },
+        "DELETE FROM code_index_runs WHERE project_id = ?": {
+          "prepare_count": 3,
+          "calls": 3,
+          "elapsed_ms": 0.48569999999017455
+        },
+        "INSERT INTO code_index_runs (project_id, index_run_id, started_sequence, data) VALUES (?, ?, ?, ?)": {
+          "prepare_count": 2,
+          "calls": 4,
+          "elapsed_ms": 0.22430000000167638
+        },
+        "UPDATE code_projection_state SET last_event_sequence = ? WHERE project_id = ?": {
+          "prepare_count": 2,
+          "calls": 2,
+          "elapsed_ms": 0.23869999998714775
+        },
+        "DELETE FROM code_files WHERE project_id = ?": {
+          "prepare_count": 1,
+          "calls": 1,
+          "elapsed_ms": 13.841999999975087
+        },
+        "DELETE FROM code_symbols WHERE project_id = ?": {
+          "prepare_count": 1,
+          "calls": 1,
+          "elapsed_ms": 343.74789999998757
+        },
+        "DELETE FROM code_edges WHERE project_id = ?": {
+          "prepare_count": 1,
+          "calls": 1,
+          "elapsed_ms": 2727.92710000003
+        },
+        "DELETE FROM code_imports WHERE project_id = ?": {
+          "prepare_count": 1,
+          "calls": 1,
+          "elapsed_ms": 0.14149999999790452
+        },
+        "DELETE FROM code_projection_state WHERE project_id = ?": {
+          "prepare_count": 1,
+          "calls": 1,
+          "elapsed_ms": 0.03919999999925494
+        },
+        "INSERT INTO code_files (project_id, path, file_id, content_hash, observation_event_id, extraction_hash, extraction_json) VALUES (?, ?, ?, ?, ?, ?, ?)": {
+          "prepare_count": 1,
+          "calls": 1000,
+          "elapsed_ms": 69.43370000002324
+        },
+        "INSERT INTO code_symbols (project_id, logical_symbol_id, symbol_version_id, file_id, name, kind, data) VALUES (?, ?, ?, ?, ?, ?, ?)": {
+          "prepare_count": 1,
+          "calls": 22000,
+          "elapsed_ms": 358.0125999986485
+        },
+        "INSERT INTO code_edges (project_id, id, source_id, target_id, edge_type, data) VALUES (?, ?, ?, ?, ?, ?)": {
+          "prepare_count": 1,
+          "calls": 80000,
+          "elapsed_ms": 2054.4180999995733
+        },
+        "INSERT INTO code_imports (project_id, id, file_id, data) VALUES (?, ?, ?, ?)": {
+          "prepare_count": 1,
+          "calls": 0,
+          "elapsed_ms": 0.09090000001015142
+        },
+        "INSERT INTO code_projection_state (project_id, last_event_sequence, graph_hash, diagnostics_json) VALUES (?, ?, ?, ?)": {
+          "prepare_count": 1,
+          "calls": 1,
+          "elapsed_ms": 0.3966999999829568
+        }
+      },
+      "cpu_self_ms": [
+        {
+          "function": "",
+          "file": "",
+          "line": 0,
+          "self_ms": 5367.454
+        },
+        {
+          "function": "(garbage collector)",
+          "file": "",
+          "line": 0,
+          "self_ms": 1765.753
+        },
+        {
+          "function": "",
+          "file": "",
+          "line": 0,
+          "self_ms": 1124.553
+        },
+        {
+          "function": "open",
+          "file": "",
+          "line": 0,
+          "self_ms": 501.412
+        },
+        {
+          "function": "encode",
+          "file": "packages/core/dist/index.js",
+          "line": 8,
+          "self_ms": 409.1
+        },
+        {
+          "function": "",
+          "file": "packages/codegraph/dist/index.js",
+          "line": 102,
+          "self_ms": 314.864
+        },
+        {
+          "function": "read",
+          "file": "",
+          "line": 0,
+          "self_ms": 268.989
+        },
+        {
+          "function": "",
+          "file": "",
+          "line": 0,
+          "self_ms": 247.559
+        },
+        {
+          "function": "",
+          "file": "packages/codegraph/dist/index.js",
+          "line": 102,
+          "self_ms": 222.651
+        },
+        {
+          "function": "encode",
+          "file": "packages/core/dist/index.js",
+          "line": 8,
+          "self_ms": 188.142
+        },
+        {
+          "function": "encode",
+          "file": "packages/core/dist/index.js",
+          "line": 8,
+          "self_ms": 186.573
+        },
+        {
+          "function": "",
+          "file": "",
+          "line": 0,
+          "self_ms": 175.095
+        },
+        {
+          "function": "",
+          "file": "packages/core/dist/index.js",
+          "line": 27,
+          "self_ms": 173.766
+        },
+        {
+          "function": "encode",
+          "file": "packages/core/dist/index.js",
+          "line": 8,
+          "self_ms": 173.561
+        },
+        {
+          "function": "run",
+          "file": "packages/storage/dist/sqlite.js",
+          "line": 61,
+          "self_ms": 172.165
+        },
+        {
+          "function": "encode",
+          "file": "packages/core/dist/index.js",
+          "line": 8,
+          "self_ms": 150.077
+        },
+        {
+          "function": "encode",
+          "file": "packages/core/dist/index.js",
+          "line": 8,
+          "self_ms": 144.436
+        },
+        {
+          "function": "post",
+          "file": "node:inspector",
+          "line": 115,
+          "self_ms": 135.91
+        },
+        {
+          "function": "edge",
+          "file": "packages/codegraph/dist/resolve.js",
+          "line": 52,
+          "self_ms": 130.43
+        },
+        {
+          "function": "",
+          "file": "packages/core/dist/index.js",
+          "line": 27,
+          "self_ms": 128.846
+        },
+        {
+          "function": "update",
+          "file": "node:internal/crypto/hash",
+          "line": 107,
+          "self_ms": 124.459
+        },
+        {
+          "function": "encode",
+          "file": "packages/core/dist/index.js",
+          "line": 8,
+          "self_ms": 117.289
+        },
+        {
+          "function": "encode",
+          "file": "packages/core/dist/index.js",
+          "line": 8,
+          "self_ms": 116.612
+        },
+        {
+          "function": "edge",
+          "file": "packages/codegraph/dist/resolve.js",
+          "line": 52,
+          "self_ms": 116.587
+        },
+        {
+          "function": "encode",
+          "file": "packages/core/dist/index.js",
+          "line": 8,
+          "self_ms": 115.254
+        },
+        {
+          "function": "",
+          "file": "packages/core/dist/index.js",
+          "line": 27,
+          "self_ms": 112.148
+        },
+        {
+          "function": "",
+          "file": "packages/core/dist/index.js",
+          "line": 27,
+          "self_ms": 109.986
+        },
+        {
+          "function": "",
+          "file": "packages/core/dist/index.js",
+          "line": 27,
+          "self_ms": 108.735
+        },
+        {
+          "function": "encode",
+          "file": "packages/core/dist/index.js",
+          "line": 8,
+          "self_ms": 107.386
+        },
+        {
+          "function": "#persist",
+          "file": "packages/codegraph/dist/index.js",
+          "line": 81,
+          "self_ms": 105.957
+        },
+        {
+          "function": "validateExtraction",
+          "file": "packages/codegraph/dist/domain.js",
+          "line": 55,
+          "self_ms": 105.608
+        },
+        {
+          "function": "encode",
+          "file": "packages/core/dist/index.js",
+          "line": 8,
+          "self_ms": 105.201
+        },
+        {
+          "function": "encode",
+          "file": "packages/core/dist/index.js",
+          "line": 8,
+          "self_ms": 88.922
+        },
+        {
+          "function": "spawn",
+          "file": "",
+          "line": 0,
+          "self_ms": 87.87
+        },
+        {
+          "function": "Hash",
+          "file": "",
+          "line": 0,
+          "self_ms": 75.791
+        },
+        {
+          "function": "",
+          "file": "packages/core/dist/index.js",
+          "line": 27,
+          "self_ms": 74.847
+        },
+        {
+          "function": "lstat",
+          "file": "",
+          "line": 0,
+          "self_ms": 72.571
+        },
+        {
+          "function": "encode",
+          "file": "packages/core/dist/index.js",
+          "line": 8,
+          "self_ms": 70.185
+        },
+        {
+          "function": "Hash",
+          "file": "",
+          "line": 0,
+          "self_ms": 68.971
+        },
+        {
+          "function": "update",
+          "file": "",
+          "line": 0,
+          "self_ms": 67.774
+        }
+      ]
+    },
+    {
+      "name": "one_file_index",
+      "elapsed_ms": 17794.199200000003,
+      "memory_after": {
+        "rss": 1126699008,
+        "heapTotal": 639348736,
+        "heapUsed": 586550248,
+        "external": 35905518,
+        "arrayBuffers": 52567
+      },
+      "index_metrics": {
+        "files_scanned": 1000,
+        "files_parsed": 1,
+        "files_reused": 999,
+        "bytes_read": 1044710,
+        "symbols_extracted": 22,
+        "edges_extracted": 80000,
+        "duration_ms": 5659.263500000001
+      },
+      "sql_profile": {
+        "SELECT * FROM events ORDER BY project_id, sequence": {
+          "prepare_count": 1,
+          "calls": 1,
+          "elapsed_ms": 6.055000000022119
+        },
+        "SELECT * FROM events WHERE project_id = ? ORDER BY sequence": {
+          "prepare_count": 10,
+          "calls": 10,
+          "elapsed_ms": 34.74280000003637
+        },
+        "SELECT * FROM code_projection_state WHERE project_id = ?": {
+          "prepare_count": 2,
+          "calls": 2,
+          "elapsed_ms": 0.4701000000059139
+        },
+        "SELECT extraction_json FROM code_files WHERE project_id = ? ORDER BY path": {
+          "prepare_count": 2,
+          "calls": 2,
+          "elapsed_ms": 59.16949999995995
+        },
+        "SELECT data FROM code_symbols WHERE project_id = ? ORDER BY logical_symbol_id": {
+          "prepare_count": 2,
+          "calls": 2,
+          "elapsed_ms": 198.19010000003618
+        },
+        "SELECT data FROM code_edges WHERE project_id = ? ORDER BY id": {
+          "prepare_count": 2,
+          "calls": 2,
+          "elapsed_ms": 505.7100999999966
+        },
+        "SELECT data FROM code_imports WHERE project_id = ? ORDER BY id": {
+          "prepare_count": 2,
+          "calls": 2,
+          "elapsed_ms": 0.7958999999682419
+        },
+        "SELECT data FROM code_index_runs WHERE project_id = ? ORDER BY started_sequence": {
+          "prepare_count": 2,
+          "calls": 2,
+          "elapsed_ms": 0.3267999999807216
+        },
+        "SELECT * FROM source_blobs WHERE content_hash = ?": {
+          "prepare_count": 2002,
+          "calls": 2002,
+          "elapsed_ms": 230.09560000145575
+        },
+        "INSERT INTO events (id, project_id, session_id, sequence, event_type, payload, created_at, content_hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?)": {
+          "prepare_count": 3,
+          "calls": 3,
+          "elapsed_ms": 7.631699999968987
+        },
+        "INSERT INTO projects (id, name, root_path, created_at, active_session_id, last_sequence) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET name = excluded.name, root_path = excluded.root_path, created_at = excluded.created_at, active_session_id = excluded.active_session_id, last_sequence = excluded.last_sequence": {
+          "prepare_count": 3,
+          "calls": 3,
+          "elapsed_ms": 0.9428999999363441
+        },
+        "DELETE FROM checkpoints WHERE project_id = ?": {
+          "prepare_count": 3,
+          "calls": 3,
+          "elapsed_ms": 0.8396000000357162
+        },
+        "DELETE FROM sessions WHERE project_id = ?": {
+          "prepare_count": 3,
+          "calls": 3,
+          "elapsed_ms": 0.25909999999566935
+        },
+        "INSERT INTO sessions (id, project_id, created_at, resumed_from_checkpoint_id, provider, agent_name, model_name, external_session_id, client_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)": {
+          "prepare_count": 3,
+          "calls": 3,
+          "elapsed_ms": 0.11739999998826534
+        },
+        "INSERT INTO checkpoints (id, project_id, session_id, name, through_sequence, state_hash, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)": {
+          "prepare_count": 3,
+          "calls": 0,
+          "elapsed_ms": 0.1006000000052154
+        },
+        "DELETE FROM memory_relations WHERE project_id = ?": {
+          "prepare_count": 3,
+          "calls": 3,
+          "elapsed_ms": 0.557699999975739
+        },
+        "DELETE FROM memory_entities WHERE project_id = ?": {
+          "prepare_count": 3,
+          "calls": 3,
+          "elapsed_ms": 0.11919999998644926
+        },
+        "INSERT INTO memory_entities (id, project_id, entity_type, content, status, created_at, source_event_ids, created_by_session_id, valid_from_sequence, valid_to_sequence, superseded_by, metadata) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)": {
+          "prepare_count": 3,
+          "calls": 0,
+          "elapsed_ms": 0.5309000000124797
+        },
+        "INSERT INTO memory_relations (id, project_id, from_entity_id, to_entity_id, relation_type, source_event_ids, created_at, created_by_session_id, valid_from_sequence, valid_to_sequence, metadata) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)": {
+          "prepare_count": 3,
+          "calls": 0,
+          "elapsed_ms": 0.17720000000554137
+        },
+        "DELETE FROM code_index_runs WHERE project_id = ?": {
+          "prepare_count": 4,
+          "calls": 4,
+          "elapsed_ms": 0.8164000000106171
+        },
+        "INSERT INTO code_index_runs (project_id, index_run_id, started_sequence, data) VALUES (?, ?, ?, ?)": {
+          "prepare_count": 3,
+          "calls": 9,
+          "elapsed_ms": 0.3895000000775326
+        },
+        "UPDATE code_projection_state SET last_event_sequence = ? WHERE project_id = ?": {
+          "prepare_count": 3,
+          "calls": 3,
+          "elapsed_ms": 2.5927999999839813
+        },
+        "SELECT 1 FROM source_blobs WHERE content_hash = ?": {
+          "prepare_count": 1,
+          "calls": 1,
+          "elapsed_ms": 0.09299999999348074
+        },
+        "INSERT INTO source_blobs (content_hash, byte_length, content, created_at) VALUES (?, ?, ?, ?)": {
+          "prepare_count": 1,
+          "calls": 1,
+          "elapsed_ms": 0.08710000000428408
+        },
+        "DELETE FROM code_files WHERE project_id = ?": {
+          "prepare_count": 1,
+          "calls": 1,
+          "elapsed_ms": 17.68969999998808
+        },
+        "DELETE FROM code_symbols WHERE project_id = ?": {
+          "prepare_count": 1,
+          "calls": 1,
+          "elapsed_ms": 217.42930000001797
+        },
+        "DELETE FROM code_edges WHERE project_id = ?": {
+          "prepare_count": 1,
+          "calls": 1,
+          "elapsed_ms": 2612.964800000016
+        },
+        "DELETE FROM code_imports WHERE project_id = ?": {
+          "prepare_count": 1,
+          "calls": 1,
+          "elapsed_ms": 0.1332000000111293
+        },
+        "DELETE FROM code_projection_state WHERE project_id = ?": {
+          "prepare_count": 1,
+          "calls": 1,
+          "elapsed_ms": 0.035900000017136335
+        },
+        "INSERT INTO code_files (project_id, path, file_id, content_hash, observation_event_id, extraction_hash, extraction_json) VALUES (?, ?, ?, ?, ?, ?, ?)": {
+          "prepare_count": 1,
+          "calls": 1000,
+          "elapsed_ms": 57.74430000036955
+        },
+        "INSERT INTO code_symbols (project_id, logical_symbol_id, symbol_version_id, file_id, name, kind, data) VALUES (?, ?, ?, ?, ?, ?, ?)": {
+          "prepare_count": 1,
+          "calls": 22000,
+          "elapsed_ms": 316.8320999976422
+        },
+        "INSERT INTO code_edges (project_id, id, source_id, target_id, edge_type, data) VALUES (?, ?, ?, ?, ?, ?)": {
+          "prepare_count": 1,
+          "calls": 80000,
+          "elapsed_ms": 1822.8556000003591
+        },
+        "INSERT INTO code_imports (project_id, id, file_id, data) VALUES (?, ?, ?, ?)": {
+          "prepare_count": 1,
+          "calls": 0,
+          "elapsed_ms": 0.10490000003483146
+        },
+        "INSERT INTO code_projection_state (project_id, last_event_sequence, graph_hash, diagnostics_json) VALUES (?, ?, ?, ?)": {
+          "prepare_count": 1,
+          "calls": 1,
+          "elapsed_ms": 0.4417999999714084
+        }
+      }
+    },
+    {
+      "name": "context_0",
+      "elapsed_ms": 4111.89380000002,
+      "memory_after": {
+        "rss": 1024847872,
+        "heapTotal": 427565056,
+        "heapUsed": 272189728,
+        "external": 36075452,
+        "arrayBuffers": 222501
+      },
+      "index_metrics": {
+        "retrieval_ms": 3675.137400000007,
+        "ppr_ms": 86.07860000000801,
+        "packing_ms": 399.17929999995977,
+        "total_ms": 4111.039800000028
+      },
+      "sql_profile": {
+        "SELECT * FROM events WHERE project_id = ? ORDER BY sequence": {
+          "prepare_count": 4,
+          "calls": 4,
+          "elapsed_ms": 15.547899999888614
+        },
+        "SELECT * FROM code_projection_state WHERE project_id = ?": {
+          "prepare_count": 1,
+          "calls": 1,
+          "elapsed_ms": 0.259699999995064
+        },
+        "SELECT extraction_json FROM code_files WHERE project_id = ? ORDER BY path": {
+          "prepare_count": 1,
+          "calls": 1,
+          "elapsed_ms": 41.4548000000068
+        },
+        "SELECT data FROM code_symbols WHERE project_id = ? ORDER BY logical_symbol_id": {
+          "prepare_count": 1,
+          "calls": 1,
+          "elapsed_ms": 86.30320000002393
+        },
+        "SELECT data FROM code_edges WHERE project_id = ? ORDER BY id": {
+          "prepare_count": 1,
+          "calls": 1,
+          "elapsed_ms": 260.72529999999097
+        },
+        "SELECT data FROM code_imports WHERE project_id = ? ORDER BY id": {
+          "prepare_count": 1,
+          "calls": 1,
+          "elapsed_ms": 0.5038000000058673
+        },
+        "SELECT data FROM code_index_runs WHERE project_id = ? ORDER BY started_sequence": {
+          "prepare_count": 1,
+          "calls": 1,
+          "elapsed_ms": 0.10449999995762482
+        },
+        "SELECT * FROM source_blobs WHERE content_hash = ?": {
+          "prepare_count": 1179,
+          "calls": 1179,
+          "elapsed_ms": 36.373900000646245
+        },
+        "SELECT * FROM retrieval_memory_fts WHERE project_id = ? ORDER BY id": {
+          "prepare_count": 1,
+          "calls": 1,
+          "elapsed_ms": 7.151600000041071
+        },
+        "SELECT * FROM retrieval_code_fts WHERE project_id = ? ORDER BY id": {
+          "prepare_count": 1,
+          "calls": 1,
+          "elapsed_ms": 0.8625999999931082
+        },
+        "SELECT document_hash FROM retrieval_projection_state WHERE project_id = ?": {
+          "prepare_count": 1,
+          "calls": 1,
+          "elapsed_ms": 0.25809999997727573
+        },
+        "DELETE FROM retrieval_memory_fts WHERE project_id = ?": {
+          "prepare_count": 1,
+          "calls": 1,
+          "elapsed_ms": 0.28669999999692664
+        },
+        "DELETE FROM retrieval_code_fts WHERE project_id = ?": {
+          "prepare_count": 1,
+          "calls": 1,
+          "elapsed_ms": 0.04329999996116385
+        },
+        "INSERT INTO retrieval_code_fts (project_id,id,name,qualified_name,path,signature) VALUES (?,?,?,?,?,?)": {
+          "prepare_count": 22000,
+          "calls": 22000,
+          "elapsed_ms": 556.141300006886
+        },
+        "INSERT INTO retrieval_projection_state VALUES (?, ?) ON CONFLICT(project_id) DO UPDATE SET document_hash = excluded.document_hash": {
+          "prepare_count": 1,
+          "calls": 1,
+          "elapsed_ms": 0.3196999999927357
+        },
+        "SELECT id, bm25(retrieval_code_fts) AS score FROM retrieval_code_fts WHERE retrieval_code_fts MATCH ? AND project_id = ? ORDER BY score, id LIMIT ?": {
+          "prepare_count": 1,
+          "calls": 1,
+          "elapsed_ms": 8.521100000012666
+        }
+      }
+    },
+    {
+      "name": "context_1",
+      "elapsed_ms": 3460.4592999999877,
+      "memory_after": {
+        "rss": 1040293888,
+        "heapTotal": 442994688,
+        "heapUsed": 279625560,
+        "external": 36075452,
+        "arrayBuffers": 222501
+      },
+      "index_metrics": {
+        "retrieval_ms": 3075.8422000000137,
+        "ppr_ms": 85.50140000000829,
+        "packing_ms": 384.55139999999665,
+        "total_ms": 3460.451800000039
+      },
+      "sql_profile": {
+        "SELECT * FROM events WHERE project_id = ? ORDER BY sequence": {
+          "prepare_count": 4,
+          "calls": 4,
+          "elapsed_ms": 14.915999999968335
+        },
+        "SELECT * FROM code_projection_state WHERE project_id = ?": {
+          "prepare_count": 1,
+          "calls": 1,
+          "elapsed_ms": 0.20779999997466803
+        },
+        "SELECT extraction_json FROM code_files WHERE project_id = ? ORDER BY path": {
+          "prepare_count": 1,
+          "calls": 1,
+          "elapsed_ms": 29.765899999940302
+        },
+        "SELECT data FROM code_symbols WHERE project_id = ? ORDER BY logical_symbol_id": {
+          "prepare_count": 1,
+          "calls": 1,
+          "elapsed_ms": 92.51069999998435
+        },
+        "SELECT data FROM code_edges WHERE project_id = ? ORDER BY id": {
+          "prepare_count": 1,
+          "calls": 1,
+          "elapsed_ms": 262.1601999999839
+        },
+        "SELECT data FROM code_imports WHERE project_id = ? ORDER BY id": {
+          "prepare_count": 1,
+          "calls": 1,
+          "elapsed_ms": 0.6145000000251457
+        },
+        "SELECT data FROM code_index_runs WHERE project_id = ? ORDER BY started_sequence": {
+          "prepare_count": 1,
+          "calls": 1,
+          "elapsed_ms": 0.11119999998481944
+        },
+        "SELECT * FROM source_blobs WHERE content_hash = ?": {
+          "prepare_count": 1179,
+          "calls": 1179,
+          "elapsed_ms": 46.1271000027773
+        },
+        "SELECT * FROM retrieval_memory_fts WHERE project_id = ? ORDER BY id": {
+          "prepare_count": 1,
+          "calls": 1,
+          "elapsed_ms": 0.563800000003539
+        },
+        "SELECT * FROM retrieval_code_fts WHERE project_id = ? ORDER BY id": {
+          "prepare_count": 1,
+          "calls": 1,
+          "elapsed_ms": 85.29810000001453
+        },
+        "SELECT document_hash FROM retrieval_projection_state WHERE project_id = ?": {
+          "prepare_count": 1,
+          "calls": 1,
+          "elapsed_ms": 0.31350000004749745
+        },
+        "SELECT id, bm25(retrieval_code_fts) AS score FROM retrieval_code_fts WHERE retrieval_code_fts MATCH ? AND project_id = ? ORDER BY score, id LIMIT ?": {
+          "prepare_count": 1,
+          "calls": 1,
+          "elapsed_ms": 4.751400000008289
+        }
+      }
+    },
+    {
+      "name": "context_2",
+      "elapsed_ms": 3529.1290000000154,
+      "memory_after": {
+        "rss": 1040826368,
+        "heapTotal": 534913024,
+        "heapUsed": 308328920,
+        "external": 36075452,
+        "arrayBuffers": 222501
+      },
+      "index_metrics": {
+        "retrieval_ms": 3136.3990999999805,
+        "ppr_ms": 246.3244999999879,
+        "packing_ms": 392.6064999999944,
+        "total_ms": 3529.118299999973
+      },
+      "sql_profile": {
+        "SELECT * FROM events WHERE project_id = ? ORDER BY sequence": {
+          "prepare_count": 4,
+          "calls": 4,
+          "elapsed_ms": 16.050600000075065
+        },
+        "SELECT * FROM code_projection_state WHERE project_id = ?": {
+          "prepare_count": 1,
+          "calls": 1,
+          "elapsed_ms": 0.2260000000242144
+        },
+        "SELECT extraction_json FROM code_files WHERE project_id = ? ORDER BY path": {
+          "prepare_count": 1,
+          "calls": 1,
+          "elapsed_ms": 25.130699999979697
+        },
+        "SELECT data FROM code_symbols WHERE project_id = ? ORDER BY logical_symbol_id": {
+          "prepare_count": 1,
+          "calls": 1,
+          "elapsed_ms": 90.68760000000475
+        },
+        "SELECT data FROM code_edges WHERE project_id = ? ORDER BY id": {
+          "prepare_count": 1,
+          "calls": 1,
+          "elapsed_ms": 259.2418999999645
+        },
+        "SELECT data FROM code_imports WHERE project_id = ? ORDER BY id": {
+          "prepare_count": 1,
+          "calls": 1,
+          "elapsed_ms": 0.20289999997476116
+        },
+        "SELECT data FROM code_index_runs WHERE project_id = ? ORDER BY started_sequence": {
+          "prepare_count": 1,
+          "calls": 1,
+          "elapsed_ms": 0.09169999998994172
+        },
+        "SELECT * FROM source_blobs WHERE content_hash = ?": {
+          "prepare_count": 1179,
+          "calls": 1179,
+          "elapsed_ms": 44.292000001412816
+        },
+        "SELECT * FROM retrieval_memory_fts WHERE project_id = ? ORDER BY id": {
+          "prepare_count": 1,
+          "calls": 1,
+          "elapsed_ms": 0.41790000000037253
+        },
+        "SELECT * FROM retrieval_code_fts WHERE project_id = ? ORDER BY id": {
+          "prepare_count": 1,
+          "calls": 1,
+          "elapsed_ms": 85.51569999998901
+        },
+        "SELECT document_hash FROM retrieval_projection_state WHERE project_id = ?": {
+          "prepare_count": 1,
+          "calls": 1,
+          "elapsed_ms": 0.33289999997941777
+        },
+        "SELECT id, bm25(retrieval_code_fts) AS score FROM retrieval_code_fts WHERE retrieval_code_fts MATCH ? AND project_id = ? ORDER BY score, id LIMIT ?": {
+          "prepare_count": 1,
+          "calls": 1,
+          "elapsed_ms": 4.427699999941979
+        }
+      }
+    },
+    {
+      "name": "bm25_sql_only",
+      "elapsed_ms": 0.7106000000494532,
+      "memory_after": {
+        "rss": 1040830464,
+        "heapTotal": 534913024,
+        "heapUsed": 308357232,
+        "external": 36075452,
+        "arrayBuffers": 222501
+      },
+      "sql_profile": {
+        "SELECT id, bm25(retrieval_code_fts) AS score FROM retrieval_code_fts WHERE retrieval_code_fts MATCH ? AND project_id = ? ORDER BY score, id LIMIT ?": {
+          "prepare_count": 1,
+          "calls": 1,
+          "elapsed_ms": 0.42860000004293397
+        }
+      }
+    }
+  ],
+  "queries": [
+    {
+      "cache": "cold_search_projection",
+      "retrieval_ms": 3675.137400000007,
+      "ppr_ms": 86.07860000000801,
+      "packing_ms": 399.17929999995977,
+      "total_ms": 4111.039800000028,
+      "evidence_count": 14,
+      "tokens": 3858
+    },
+    {
+      "cache": "warm",
+      "retrieval_ms": 3075.8422000000137,
+      "ppr_ms": 85.50140000000829,
+      "packing_ms": 384.55139999999665,
+      "total_ms": 3460.451800000039,
+      "evidence_count": 14,
+      "tokens": 3858
+    },
+    {
+      "cache": "warm",
+      "retrieval_ms": 3136.3990999999805,
+      "ppr_ms": 246.3244999999879,
+      "packing_ms": 392.6064999999944,
+      "total_ms": 3529.118299999973,
+      "evidence_count": 14,
+      "tokens": 3858
+    }
+  ],
+  "bm25_hit_count": 20,
+  "archive_ms": 1158.2296999999671,
+  "encrypted_archive_ms": 828.1273999999976,
+  "sizes": {
+    "source_blob_bytes": 1045681,
+    "graph_projection_json_bytes": 81773765,
+    "archive_bytes": 312965,
+    "encrypted_archive_bytes": 313152,
+    "database_bytes_after_close": 172302336
+  },
+  "peak_rss_bytes": 1459761152,
+  "notes": [
+    "Single local run; not a cross-platform SLA.",
+    "Unchanged indexing still validates and republishes derived projections.",
+    "retrieval_ms includes PPR and projection validation; bm25_sql_only isolates FTS5.",
+    "Memory samples are process-wide; maxRSS is OS high-water mark."
+  ]
+}

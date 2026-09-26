@@ -3,6 +3,10 @@
   "version": "0.1.0",
   "description": "Local project memory, code intelligence and MCP server for AI coding agents. Preserves canonical source evidence, durable memory, provider-neutral handoff and token-budgeted context.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/1221smolkiddo/graphit.git"
+  },
   "keywords": [
     "ai",
     "agent",
@@ -40,6 +44,7 @@
     "docs/RETRIEVAL.md",
     "docs/PORTABILITY.md",
     "docs/DATA_PRESERVATION.md",
+    "docs/RELEASE.md",
     "LICENSE",
     "README.md"
   ],
@@ -51,6 +56,7 @@
     "graphit": "node packages/cli/dist/index.js",
     "mcp:smoke": "node examples/mcp-smoke.mjs",
     "verify:packed": "node scripts/verify-packed.mjs",
+    "release:preflight": "node scripts/release-preflight.mjs",
     "audit:pack": "node scripts/audit-pack.mjs",
     "prepack": "npm run build && node scripts/prepare-package.mjs",
     "prepublishOnly": "npm test && npm run typecheck && npm run lint"

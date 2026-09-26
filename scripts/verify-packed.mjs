@@ -46,7 +46,7 @@ async function call(client, name, args = {}) {
 try {
   assert.ok(process.env.npm_execpath, 'Run with npm run verify:packed -- <tarball>');
   execFileSync(process.execPath, [process.env.npm_execpath, 'install', '--global', '--prefix', prefix, archive,
-    '--ignore-scripts', '--no-audit', '--no-fund'], { cwd: sandbox, env, stdio: 'pipe' });
+    '--no-audit', '--no-fund'], { cwd: sandbox, env, stdio: 'pipe' });
   assert.ok(existsSync(cli));
   assert.equal(existsSync(join(installedRoot, 'packages')), false, 'No workspace is shipped');
   assert.equal(existsSync(join(installedRoot, 'node_modules/@graphit')), false, 'No private runtime package resolution');
@@ -72,11 +72,11 @@ try {
   assert.ok(JSON.parse(missingNative.stdout).errors.join(' ').includes('C++ toolchain and Python'));
   mkdirSync(project); mkdirSync(imported);
   writeFileSync(join(project, 'example.ts'), 'export function greet(name: string) { return `Hello ${name}`; }\nexport function main() { return greet("World"); }\n');
-  run(project, 'init', '--name', 'Recovery Test');
+  run(project, 'init', '--name', 'CI Smoke');
   run(project, 'index', '.');
   const stats = JSON.parse(run(project, 'code', 'stats', '--json')); assert.ok(stats.symbols > 0 && stats.edges > 0);
-  const context = JSON.parse(run(project, 'context', 'explain this project', '--tokens', '1500', '--json'));
-  assert.equal(context.budget.budget_insufficient, false); assert.ok(context.budget.estimated_tokens <= 1500);
+  const context = JSON.parse(run(project, 'context', 'explain this project', '--tokens', '1000', '--json'));
+  assert.equal(context.budget.budget_insufficient, false); assert.ok(context.budget.estimated_tokens <= 1000);
   run(project, 'handoff'); run(project, 'mcp', 'doctor');
   assert.equal(JSON.parse(run(project, 'repair', '--json')).canonical_unchanged, true);
   const a = await connect(project, 'anthropic', 'claude-code');

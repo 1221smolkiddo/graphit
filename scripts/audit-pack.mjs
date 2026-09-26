@@ -8,7 +8,7 @@ import process from 'node:process';
 
 const archive = realpathSync(resolve(process.argv[2] ?? 'graphit-0.1.0.tgz'));
 const entries = execFileSync('tar', ['-tzf', archive], { encoding: 'utf8' }).trim().split(/\r?\n/);
-const docs = new Set(['GETTING_STARTED', 'CLI', 'MCP', 'ARCHITECTURE', 'MEMORY', 'RETRIEVAL', 'PORTABILITY', 'DATA_PRESERVATION'].map((name) => `package/docs/${name}.md`));
+const docs = new Set(['GETTING_STARTED', 'CLI', 'MCP', 'ARCHITECTURE', 'MEMORY', 'RETRIEVAL', 'PORTABILITY', 'DATA_PRESERVATION', 'RELEASE'].map((name) => `package/docs/${name}.md`));
 const forbidden = [
   /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/,
   /(?:sk-(?:proj-)?|gh[pousr]_|github_pat_|npm_)[A-Za-z0-9_-]{24,}/,

@@ -1,5 +1,12 @@
 # Privacy and preservation
 
+Graphit 0.1.0 is local-first with no telemetry by default. It does not send indexed
+code or recorded memory to a hosted service. Protect the **unencrypted live SQLite
+database**, WAL/SHM and checkout using OS full-disk encryption (for example BitLocker,
+FileVault or LUKS), account security and restrictive filesystem permissions.
+Encrypted exports use AES-256-GCM with scrypt; they are portable-bundle protection,
+not database-at-rest encryption. SQLCipher/live database encryption is not included.
+
 Canonical events and SHA-256 source blobs are append-only. SQLite triggers reject updates/deletes/replacement inserts. Sequence allocation and writes are transactional under WAL; checkpoints and derived state are validated by replay. No P5 migration changes previous schemas or data.
 
 Graphit does **not** automatically scrape full private Codex/Claude chats. It captures only explicitly recorded CLI/MCP data and deliberately indexed source. It makes no model requests, has no cloud sync, and exposes no shell-execution tool. Stdio MCP clients you authorize can read selected-project evidence and append validated records.

@@ -1,0 +1,79 @@
+{
+  "measured_at": "2026-09-26T23:49:40.049Z",
+  "node": "v22.17.0",
+  "platform": "win32",
+  "fixture": {
+    "generator": "scripts/stress-p6c.mjs",
+    "files": 1000,
+    "functions_per_file": 20,
+    "symbols": 22000,
+    "edges": 80000
+  },
+  "operations": [
+    {
+      "name": "initial_index",
+      "before_ms": 226131.44269999999,
+      "after_ms": 385696.7539,
+      "improvement_percent": -70.56308016912503
+    },
+    {
+      "name": "unchanged_index",
+      "before_ms": 19316.29800000001,
+      "after_ms": 8844.333199999994,
+      "improvement_percent": 54.21310439505547
+    },
+    {
+      "name": "one_file_index",
+      "before_ms": 17794.199200000003,
+      "after_ms": 25208.43690000003,
+      "improvement_percent": -41.66659941628632
+    }
+  ],
+  "peak_rss_bytes": {
+    "before": 1459761152,
+    "after": 1338511360
+  },
+  "unchanged_projection_rewrites": {
+    "before": [
+      {
+        "sql": "DELETE FROM code_files WHERE project_id = ?",
+        "calls": 1
+      },
+      {
+        "sql": "DELETE FROM code_symbols WHERE project_id = ?",
+        "calls": 1
+      },
+      {
+        "sql": "DELETE FROM code_edges WHERE project_id = ?",
+        "calls": 1
+      },
+      {
+        "sql": "DELETE FROM code_imports WHERE project_id = ?",
+        "calls": 1
+      },
+      {
+        "sql": "INSERT INTO code_files (project_id, path, file_id, content_hash, observation_event_id, extraction_hash, extraction_json) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        "calls": 1000
+      },
+      {
+        "sql": "INSERT INTO code_symbols (project_id, logical_symbol_id, symbol_version_id, file_id, name, kind, data) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        "calls": 22000
+      },
+      {
+        "sql": "INSERT INTO code_edges (project_id, id, source_id, target_id, edge_type, data) VALUES (?, ?, ?, ?, ?, ?)",
+        "calls": 80000
+      },
+      {
+        "sql": "INSERT INTO code_imports (project_id, id, file_id, data) VALUES (?, ?, ?, ?)",
+        "calls": 0
+      }
+    ],
+    "after": []
+  },
+  "notes": [
+    "Single instrumented local run per version; CPU profiling adds overhead.",
+    "Other local verification activity may affect initial timings; initial indexing was not optimized.",
+    "Incremental changes intentionally retain global relationship resolution and full projection publication.",
+    "No FTS queries or writes occur in the index phases; search projection maintenance is deferred to retrieval."
+  ]
+}
