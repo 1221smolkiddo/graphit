@@ -1,6 +1,14 @@
 # Graphit
 
-Graphit is local project memory and code intelligence for coding agents. It preserves immutable events and source evidence, then derives a code graph, durable memory, provider-neutral handoff and token-budgeted context. Version **0.1.0**, through P6B.
+Graphit is local project memory and code intelligence for coding agents. It preserves immutable events and source evidence, then derives a code graph, durable memory, provider-neutral handoff and token-budgeted context. Version **0.1.0**, through P6C.
+
+P6C stress evidence: 1,000 deterministic files, 22,000 symbols and 80,000 edges.
+A measured duplicate-edge fix reduced graph assembly from 56.09s to 1.14s;
+initial / unchanged / one-file indexing changed from 362.06 / 138.36 / 123.65s
+to 231.30 / 15.46 / 18.26s on Windows x64 / Node 22.17.
+These are single local runs, not SLAs: replay remains costly and peak RSS was
+about 1.47 GB. Full JSON measurements and reproduction scripts are in
+[benchmarks](benchmarks) and [architecture](docs/ARCHITECTURE.md).
 
 ## Install
 
@@ -54,7 +62,7 @@ The refresh-work fixture measured **27,652 candidate tokens → 1,960 selected**
 
 Graphit does **not** automatically scrape full private Codex/Claude chats. It captures data explicitly recorded through Graphit CLI/MCP, plus files you deliberately index. It does not call LLMs or cloud services. `.graphit/` contains private project evidence and should not be committed.
 
-Source events and blobs are append-only; memory, code and search indexes are reconstructable. `graphit export snapshot.graphit` makes a checksummed archive; `graphit import snapshot.graphit` imports into a clean directory and rebuilds all derived indexes. Archives are not encrypted and can contain code, recorded secrets and historical absolute paths. See [data preservation](docs/DATA_PRESERVATION.md) and [portability](docs/PORTABILITY.md).
+Source events and blobs are append-only; memory, code and search indexes are reconstructable. `graphit export snapshot.graphit` makes a checksummed plaintext archive; add `--encrypt` for AES-256-GCM encryption with a no-echo passphrase prompt. `graphit import snapshot.graphit` auto-detects either format, authenticates encrypted input, then rebuilds derived indexes in a clean directory. For automation, use `--passphrase-env VARIABLE_NAME`, never a secret value in argv. Live databases remain unencrypted. See [data preservation](docs/DATA_PRESERVATION.md) and [portability](docs/PORTABILITY.md).
 
 ## Documentation
 
@@ -84,4 +92,4 @@ Before upgrading, export a backup or stop all writers and preserve the entire `.
 
 `graphit doctor --json` diagnoses without repair. For stale derived rows, stop other writers, back up, then run `graphit repair --json` and doctor again. Repair atomically rebuilds project/session/checkpoint, memory, code and retrieval projections for all projects in the local database; events/blobs must remain unchanged. Interrupted indexing requires `graphit index . --rebuild`. Canonical damage or missing schema tables requires recovery from a verified backup into a new directory, never deleting the original. See [recovery details](docs/DATA_PRESERVATION.md).
 
-Synchronous replay and startup integrity checking favor correctness over very large histories. Dynamic calls and ambiguous imports may remain unresolved. Hashes detect corruption, not malicious re-signing by someone with full filesystem access. Imports are limited to 256 MiB uncompressed; no archive merge or encryption. No VS Code extension, UI, website, cloud sync, embeddings, LLM summaries or private transcript scraping.
+Synchronous replay and startup integrity checking favor correctness over very large histories. Dynamic calls and ambiguous imports may remain unresolved; only provable import/export alias chains are resolved. Hashes detect corruption, not malicious re-signing by someone with full filesystem access. Imports are limited to 256 MiB uncompressed (257 MiB compressed); no archive merge or live-database encryption. No VS Code extension, UI, website, cloud sync, embeddings, LLM summaries or private transcript scraping.

@@ -17,6 +17,8 @@ export type { SearchDocuments, SearchHit } from './search.js';
 
 export { migrate, migrations, assertSchemaObjects, type Migration } from './migrations.js';
 import { exportProject, importProject } from './portable.js';
+import type { ArchiveEncryption } from './encryption.js';
+export type { ArchiveEncryption, PassphraseSource } from './encryption.js';
 export { exportProject, importProject, readExportFile, validateExport } from './portable.js';
 
 export interface StoreOptions {
@@ -75,8 +77,8 @@ export class EventStore {
     }
   }
 
-  exportArchive(projectId: string, outputPath: string, version: string) {
-    return exportProject(this.#database, projectId, outputPath, version);
+  exportArchive(projectId: string, outputPath: string, version: string, encryption?: ArchiveEncryption) {
+    return exportProject(this.#database, projectId, outputPath, version, encryption);
   }
 
   importArchive(data: string, rebuildSearch: (projectId: string) => unknown) {

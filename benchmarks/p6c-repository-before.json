@@ -1,0 +1,245 @@
+{
+  "fixture": "current packages/*/src/**/*.ts snapshot",
+  "baseline_commit": "090f93feb5f054b14f57d1e405b2c5d44e27e03a",
+  "measured_at": "2026-09-26T19:00:28.461Z",
+  "files": 34,
+  "resolved_edges": 351,
+  "calls": [
+    {
+      "from": "auditUnresolved.<anonymous>",
+      "to": "packages/codegraph/src/audit.ts:auditUnresolved.categorize"
+    },
+    {
+      "from": "canonicalJson",
+      "to": "packages/core/src/index.ts:canonicalJson.encode"
+    },
+    {
+      "from": "CodeGraphService.#parse",
+      "to": "packages/codegraph/src/domain.ts:validateExtraction"
+    },
+    {
+      "from": "CodeGraphService.#read",
+      "to": "packages/codegraph/src/index.ts:CodeGraphService.#read.rows"
+    },
+    {
+      "from": "CodeGraphService.#read",
+      "to": "packages/codegraph/src/index.ts:CodeGraphService.#read.rows"
+    },
+    {
+      "from": "CodeGraphService.#read",
+      "to": "packages/codegraph/src/index.ts:CodeGraphService.#read.rows"
+    },
+    {
+      "from": "CodeGraphService.#read",
+      "to": "packages/codegraph/src/index.ts:CodeGraphService.#read.rows"
+    },
+    {
+      "from": "CodeGraphService.#read",
+      "to": "packages/codegraph/src/index.ts:CodeGraphService.#read.rows"
+    },
+    {
+      "from": "CodeGraphService.constructor.<anonymous>",
+      "to": "packages/codegraph/src/replay.ts:replayCodeHistory"
+    },
+    {
+      "from": "CodeGraphService.getDefinitions",
+      "to": "packages/codegraph/src/index.ts:CodeGraphService.getGraph"
+    },
+    {
+      "from": "CodeGraphService.stageExtraction",
+      "to": "packages/codegraph/src/index.ts:CodeGraphService.#cacheKey"
+    },
+    {
+      "from": "contentHash",
+      "to": "packages/core/src/index.ts:canonicalJson"
+    },
+    {
+      "from": "contentHash",
+      "to": "packages/core/src/index.ts:sha256"
+    },
+    {
+      "from": "createEvent",
+      "to": "packages/core/src/index.ts:parseUnsigned"
+    },
+    {
+      "from": "createEvent",
+      "to": "packages/core/src/index.ts:sha256"
+    },
+    {
+      "from": "createEvent",
+      "to": "packages/core/src/index.ts:contentHash"
+    },
+    {
+      "from": "createEvent",
+      "to": "packages/core/src/index.ts:canonicalJson"
+    },
+    {
+      "from": "EventStore.appendEvent",
+      "to": "packages/storage/src/index.ts:EventStore.#transaction"
+    },
+    {
+      "from": "EventStore.checkpoint",
+      "to": "packages/storage/src/index.ts:EventStore.#transaction"
+    },
+    {
+      "from": "EventStore.diagnostics",
+      "to": "packages/storage/src/index.ts:EventStore.getState"
+    },
+    {
+      "from": "EventStore.exportArchive",
+      "to": "packages/storage/src/portable.ts:exportProject"
+    },
+    {
+      "from": "EventStore.getState",
+      "to": "packages/storage/src/index.ts:EventStore.readEvents"
+    },
+    {
+      "from": "EventStore.importArchive",
+      "to": "packages/storage/src/index.ts:EventStore.#transaction"
+    },
+    {
+      "from": "EventStore.initializeProject",
+      "to": "packages/storage/src/index.ts:EventStore.#transaction"
+    },
+    {
+      "from": "EventStore.readSourceBlob",
+      "to": "packages/storage/src/blobs.ts:readSourceBlob"
+    },
+    {
+      "from": "EventStore.rebuildProjections",
+      "to": "packages/storage/src/index.ts:EventStore.#transaction"
+    },
+    {
+      "from": "EventStore.repairDerived",
+      "to": "packages/storage/src/index.ts:EventStore.#transaction"
+    },
+    {
+      "from": "EventStore.resume",
+      "to": "packages/storage/src/index.ts:EventStore.#transaction"
+    },
+    {
+      "from": "EventStore.startSession",
+      "to": "packages/storage/src/index.ts:EventStore.withProjectTransaction"
+    },
+    {
+      "from": "EventStore.withProjectTransaction",
+      "to": "packages/storage/src/index.ts:EventStore.#transaction"
+    },
+    {
+      "from": "EventStore.withWriterSession",
+      "to": "packages/storage/src/index.ts:EventStore.#transaction"
+    },
+    {
+      "from": "GraphitApi.call",
+      "to": "packages/mcp/src/api.ts:GraphitApi.call.operation"
+    },
+    {
+      "from": "insertSourceBlob",
+      "to": "packages/storage/src/blobs.ts:readSourceBlob"
+    },
+    {
+      "from": "insertSourceBlob",
+      "to": "packages/storage/src/blobs.ts:readSourceBlob"
+    },
+    {
+      "from": "MemoryService.#promote",
+      "to": "packages/memory/src/domain.ts:memoryEntityId"
+    },
+    {
+      "from": "MemoryService.#promote",
+      "to": "packages/memory/src/index.ts:MemoryService.#entity"
+    },
+    {
+      "from": "MemoryService.#state",
+      "to": "packages/memory/src/replay.ts:replayMemory"
+    },
+    {
+      "from": "MemoryService.generateHandoff.<anonymous>",
+      "to": "packages/memory/src/handoff.ts:buildHandoff"
+    },
+    {
+      "from": "MemoryService.getMemoryState",
+      "to": "packages/memory/src/replay.ts:replayMemory"
+    },
+    {
+      "from": "MemoryService.linkMemory.<anonymous>",
+      "to": "packages/memory/src/domain.ts:memoryRelationId"
+    },
+    {
+      "from": "MemoryService.resolveMemory.<anonymous>",
+      "to": "packages/memory/src/domain.ts:resolutionStatus"
+    },
+    {
+      "from": "prompt.<anonymous>.onEnd",
+      "to": "packages/cli/src/passphrase.ts:prompt.<anonymous>.finish"
+    },
+    {
+      "from": "prompt.<anonymous>.onError",
+      "to": "packages/cli/src/passphrase.ts:prompt.<anonymous>.finish"
+    },
+    {
+      "from": "read.<anonymous>",
+      "to": "packages/memory/src/projection.ts:read.decode"
+    },
+    {
+      "from": "read.<anonymous>",
+      "to": "packages/memory/src/projection.ts:read.decode"
+    },
+    {
+      "from": "reconstructState",
+      "to": "packages/core/src/index.ts:emptyState"
+    },
+    {
+      "from": "registerMemoryEventSchema",
+      "to": "packages/core/src/index.ts:registerExtensionEventSchema"
+    },
+    {
+      "from": "requireSupportedNode",
+      "to": "packages/core/src/runtime.ts:nodeSupported"
+    },
+    {
+      "from": "RetrievalService.constructor",
+      "to": "packages/retrieval/src/domain.ts:retrievalConfig"
+    },
+    {
+      "from": "RetrievalService.linkMemoryToSymbol.<anonymous>",
+      "to": "packages/retrieval/src/index.ts:currentMemory"
+    },
+    {
+      "from": "RetrievalService.rebuildSearchProjection",
+      "to": "packages/retrieval/src/index.ts:RetrievalService.retrieve"
+    },
+    {
+      "from": "scanRepository",
+      "to": "packages/indexer/src/scan.ts:scanRepository.visit"
+    },
+    {
+      "from": "SqliteDatabase.prepare.<anonymous>",
+      "to": "packages/storage/src/sqlite.ts:SqliteDatabase.prepare.decode"
+    },
+    {
+      "from": "verifyEvent",
+      "to": "packages/core/src/index.ts:createEvent"
+    },
+    {
+      "from": "verifyEvent",
+      "to": "packages/core/src/index.ts:canonicalJson"
+    }
+  ],
+  "expected_calls": null,
+  "false_positive_calls": null,
+  "unresolved": {
+    "total": 6454,
+    "counts": {
+      "external_package": 450,
+      "dynamic_call": 5236,
+      "ambiguous_local_symbol": 0,
+      "namespace_member_ambiguity": 221,
+      "unsupported_syntax_pattern": 458,
+      "re_export_resolution": 29,
+      "aliasing": 0,
+      "parser_limitation": 60,
+      "missing_local_module": 0
+    }
+  }
+}

@@ -6,7 +6,24 @@ Graphit does **not** automatically scrape full private Codex/Claude chats. It ca
 
 Use a local filesystem with reliable SQLite locking; avoid synchronizing a live WAL database. Do not commit `.graphit/` or private export archives. Back up with `graphit export` and test restore in a clean directory. Copying only `graphit.db` while writers run can omit WAL data.
 
-Archives and databases are **not encrypted**. They can include proprietary code, command output, chat records, accidentally recorded credentials and original absolute paths. Ignore rules help with indexing but are not a secret scanner. Review data before explicitly recording/indexing/exporting it. Do not assume deleting a working-tree file removes its preserved history.
+Databases and default plaintext archives are **not encrypted**. Optional `graphit export secure.graphit --encrypt` protects an exported bundle with authenticated encryption. Both kinds contain the same proprietary code, command output, chat records, accidentally recorded credentials and original absolute paths. Ignore rules help with indexing but are not a secret scanner. Review data before explicitly recording/indexing/exporting it. Do not assume deleting a working-tree file removes its preserved history.
+
+## Encrypted archive threat model
+
+Encryption protects a copied bundle against reading or modification without its
+passphrase. It does not encrypt the live SQLite database, WAL/SHM, checkout, existing
+plaintext exports or imported database. It does not protect against a compromised
+host, malicious authorized MCP client, memory inspection, swap/core dumps or weak
+passphrases attacked offline. Anyone holding the passphrase can create a valid
+bundle: encryption is not sender authentication or a signed audit ledger. Archive
+size and the public crypto header remain visible.
+
+Use a long unique passphrase stored separately from the archive. Prefer the no-echo
+TTY prompt; the explicit environment option is for controlled automation and can
+be visible to privileged processes. Wrong passwords/tampering fail before any
+destination database is created. No recovery/backdoor exists. Canonical event IDs,
+source hashes and the four schema migrations are unchanged. Plain exports remain
+supported; choosing encryption does not retrospectively secure previous copies.
 
 The published-package allowlist contains only generated runtime JS, four SQL migrations, concise public docs, README and LICENSE. Release verification scans that exact tarball for local paths, credential patterns and unexpected files. No tests, fixtures, private transcripts, archives, `.graphit` databases or machine-specific configuration are shipped.
 

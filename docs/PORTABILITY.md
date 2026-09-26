@@ -1,5 +1,37 @@
 # Export and import
 
+## Optional encrypted bundles (P6C)
+
+`graphit export secure.graphit --encrypt` prompts twice in a TTY without echoing.
+`graphit import secure.graphit` detects encryption and prompts once. For automation,
+inject a secret into an environment variable using your secret manager and pass
+`--passphrase-env GRAPHIT_ARCHIVE_PASSPHRASE` to either command. This argument is
+the variable **name**, never its value. Graphit consumes/removes that variable from
+its own environment. Do not put passwords into command arguments or shell history.
+Environment variables can still be inspected by privileged processes; interactive
+input is preferable. Redirected stdin is not accepted as an implicit secret source.
+
+The separately versioned envelope begins with `GRAPHIT_ENCRYPTED\n`, a bounded
+JSON header and newline, binary ciphertext, then a 16-byte authentication tag.
+Version 1 fixes AES-256-GCM, a random 16-byte salt, a random 12-byte IV and scrypt
+(N=32768, r=8, p=1, 32-byte key, 64 MiB memory cap). The entire magic/header/newline
+is authenticated as AAD. Passwords are never stored in metadata. Unsupported
+versions, algorithms or KDF parameters fail before key derivation.
+
+The encrypted plaintext is the original gzip v1 export, unchanged. Authentication
+finishes before decompression, manifest verification or destination creation.
+Wrong passwords and damaged ciphertext/tags produce the same authentication error;
+neither creates a partial import. There is no password reset or recovery mechanism.
+An encrypted export writes only ciphertext to its temporary file, then verifies,
+flushes and atomically publishes it using the same no-overwrite protocol.
+
+Limits: 257 MiB compressed input and 256 MiB uncompressed content; bounded buffers
+are held in memory, so peak usage can exceed the archive size substantially.
+Derived keys and selected plaintext buffers are cleared best-effort; JavaScript
+strings and runtime copies cannot be guaranteed erased. See the threat model in
+[data preservation](DATA_PRESERVATION.md). Existing plaintext gzip bundles still
+work without a password:
+
 ```sh
 graphit export snapshot.graphit
 # Change to a clean directory outside an existing Graphit project:

@@ -1,0 +1,33 @@
+{
+  "fixture": "fixtures/repos/p6c-resolution",
+  "baseline_commit": "090f93feb5f054b14f57d1e405b2c5d44e27e03a",
+  "measured_at": "2026-09-26T19:00:21.236Z",
+  "files": 9,
+  "resolved_edges": 17,
+  "calls": [
+    {
+      "from": "aliasCall",
+      "to": "leaf.ts:target"
+    },
+    {
+      "from": "namespaceCall",
+      "to": "leaf.ts:target"
+    }
+  ],
+  "expected_calls": 5,
+  "false_positive_calls": 0,
+  "unresolved": {
+    "total": 17,
+    "counts": {
+      "external_package": 2,
+      "dynamic_call": 2,
+      "ambiguous_local_symbol": 1,
+      "namespace_member_ambiguity": 2,
+      "unsupported_syntax_pattern": 0,
+      "re_export_resolution": 10,
+      "aliasing": 0,
+      "parser_limitation": 0,
+      "missing_local_module": 0
+    }
+  }
+}

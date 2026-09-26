@@ -12,6 +12,7 @@ import { RetrievalService, type RetrievalQuery } from '@graphit/retrieval';
 import { ContextCompiler, renderContext, serializeContext } from '@graphit/context';
 import { runStdio } from '@graphit/mcp';
 import { inspectProject } from './doctor.js';
+import { readPassphrase } from './passphrase.js';
 
 export const GRAPHIT_VERSION = '0.1.0';
 
@@ -45,8 +46,8 @@ const usage = `Graphit ${GRAPHIT_VERSION} — local project memory, code intelli
   graphit mcp config [--json]
   graphit doctor [--json]
   graphit repair [--json]
-  graphit export <output>
-  graphit import <file>
+  graphit export <output> [--encrypt] [--passphrase-env <VARIABLE_NAME>]
+  graphit import <file> [--passphrase-env <VARIABLE_NAME>]
 
 Commands discover .graphit/graphit.db from the current directory upward.
 Repeat --source-event to attach multiple evidence events.
@@ -90,6 +91,8 @@ async function main(): Promise<void> {
       'external-session-id': { type: 'string' },
       client: { type: 'string' },
       rebuild: { type: 'boolean' },
+      encrypt: { type: 'boolean' },
+      'passphrase-env': { type: 'string' },
       tokens: { type: 'string' }, limit: { type: 'string' }, mode: { type: 'string' },
       file: { type: 'string', multiple: true }, symbol: { type: 'string', multiple: true },
     },
@@ -108,8 +111,8 @@ async function main(): Promise<void> {
     handoff: { positionalCount: 1, options: [] },
     doctor: { positionalCount: 1, options: [] },
     repair: { positionalCount: 1, options: [] },
-    export: { positionalCount: 2, options: [] },
-    import: { positionalCount: 2, options: [] },
+    export: { positionalCount: 2, options: ['encrypt', 'passphrase-env'] },
+    import: { positionalCount: 2, options: ['passphrase-env'] },
     'session start': { positionalCount: 2, options: ['provider', 'agent', 'model', 'external-session-id', 'client'] },
     'memory add': { positionalCount: 2, options: ['type', 'content', 'source-event'] },
     'memory list': { positionalCount: 2, options: ['type', 'status'] },
@@ -141,6 +144,7 @@ async function main(): Promise<void> {
     return;
   }
   requireSupportedNode();
+  if (command === 'export' && values['passphrase-env'] !== undefined && !values.encrypt) throw new Error('--passphrase-env requires --encrypt for export');
   if (command === 'mcp') {
     if (route === 'mcp config') {
       const cwd = realpathSync(resolve(process.cwd()));
@@ -182,7 +186,7 @@ The server discovers .graphit/graphit.db from the working directory.`);
     const cwd = realpathSync(resolve(process.cwd()));
     const destination = join(cwd, '.graphit');
     if (existsSync(destination) || findRoot(cwd)) throw new Error('Import into a clean directory outside an existing Graphit project');
-    const data = await readExportFile(filePath);
+    const data = await readExportFile(filePath, () => readPassphrase(values['passphrase-env']));
     validateExport(data); // Invalid input never creates a destination database.
     const staging = mkdtempSync(join(cwd, '.graphit-import-'));
     try {
@@ -233,7 +237,8 @@ The server discovers .graphit/graphit.db from the working directory.`);
     if (command === 'export') {
       const state = requiredProject(store, root);
       const outputPath = resolve(positionals[1]!);
-      const manifest = await store.exportArchive(state.project!.id, outputPath, GRAPHIT_VERSION);
+      const encryption = values.encrypt ? { passphrase: await readPassphrase(values['passphrase-env'], true) } : undefined;
+      const manifest = await store.exportArchive(state.project!.id, outputPath, GRAPHIT_VERSION, encryption);
       const output = { ...manifest, message: `Exported project ${manifest.project_name} to ${outputPath}` };
       console.log(values.json ? JSON.stringify(output, null, 2) : output.message +
         `\n  Events: ${manifest.event_count}\n  Source blobs: ${manifest.source_blob_count}\n  Integrity: ${manifest.content_hash.slice(0, 16)}…`);

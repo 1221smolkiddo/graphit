@@ -1,5 +1,69 @@
 # Architecture
 
+## P6C boundaries
+
+Optional encrypted transport wraps, rather than replaces, the original canonical
+gzip archive. Storage authenticates AES-256-GCM before decoding; the CLI owns
+no-echo passphrase prompting. No schema, migration, parser version, event/source
+format or retrieval algorithm changes are introduced.
+
+Measured graph assembly contained an O(E²) duplicate-edge scan. An ID set now
+deduplicates edges while preserving identical IDs, source spans and final sort
+order. Replay, transaction validation, FTS5/BM25, RRF, PPR and MMR are unchanged.
+
+Resolution follows only explicit module-level import/export aliases to a unique
+target, including chains through an unambiguous local index module and namespace
+access to a forwarded name. Cycles, depth beyond 64, conflicting exports/imports,
+rebindings, shadowed names, namespace-object forwarding and dynamic receivers fail
+closed. The pinned extractor is unchanged: direct `export ... from`, wildcard
+re-exports and tsconfig/package-path aliases remain unresolved. Rebuild derived
+projections with `graphit repair` to apply resolution to an existing database.
+
+`auditUnresolved` classifies derived diagnostics into external package, dynamic
+call, ambiguous local symbol, namespace/member ambiguity, unsupported syntax,
+re-export resolution, aliasing, parser limitation and missing local module.
+These are syntactic diagnostic counts, not a runtime completeness claim; unsafe
+scope relationships are included in dynamic-call counts. Python absolute imports
+cannot reliably be called external without additional package semantics.
+The 9-file precision fixture improves unresolved counts 17 → 13 (resolved
+relationships 17 → 21, CALLS 2 → 5), with zero false-positive calls. Graphit's own
+34-file source snapshot remains 6,454 → 6,454: density is not the optimization
+objective. See `benchmarks/p6c-*resolver*.json` and `p6c-repository-*.json`.
+
+The new forwarding case also consults hash-verified preserved source: type-only
+imports/exports cannot become runtime call edges. Unsupported export spellings
+and missing source access fail closed rather than guessing from incomplete IR.
+
+### Stress measurements
+
+Reproduce after building with `node scripts/stress-p6c.mjs 1000 benchmarks/p6c-stress-after.json`.
+The deterministic generator produces 1,000 files, 22,000 symbols and 80,000 edges;
+UUIDs, timestamps and root paths intentionally remain normal runtime values.
+Single Windows x64 / Node 22.17 before/after measurements:
+
+| Operation | Baseline | ID-set optimization |
+| --- | ---: | ---: |
+| Initial index | 362.06 s | 231.30 s |
+| Graph assembly alone | 56.09 s | 1.14 s |
+| Unchanged index (0 parsed) | 138.36 s | 15.46 s |
+| One-file index (1 parsed) | 123.65 s | 18.26 s |
+
+Optimized SQL-only BM25: 0.59 ms; PPR: 80–156 ms; context packing: 387–474 ms;
+total query: 3.70–4.12 s (includes full replay/projection validation).
+Closed DB: 172,199,936 bytes; source blobs: 1,045,681 bytes; serialized graph
+projection payloads: 81,773,765 bytes (not allocated SQLite pages); plaintext
+archive: 313,020 bytes. Peak process RSS: 1,474,207,744 bytes. The packed-run report
+also records encrypted archive size and fresh-install timings.
+
+Baseline was measured before optimization. Local development activity, filesystem
+cache, GC and random identities affect timings/packing; these are measurements,
+not isolated multi-run performance guarantees. Full-history replay per event,
+projection revalidation/republication and process memory remain scaling limits.
+No larger scale or Linux/macOS timing is claimed. Raw evidence is in
+`benchmarks/p6c-stress-baseline.json`, `p6c-stress-after.json` and
+`p6c-stress-packed.json`. P3 quality remains 6/6 required evidence, approximately
+92.91% estimated-token reduction; its new report does not replace the P3 baseline.
+
 History and source are immutable. Memory and graph state are derived. Context is disposable. Provider-specific state is never canonical.
 
 The TypeScript npm workspaces remain: core → storage → memory/codegraph → indexer → retrieval → context → MCP → CLI. Core validates events, canonical JSON, timestamps and deterministic SHA-256 IDs. Storage owns WAL SQLite, transactional writes, append-only triggers and four checksummed migrations. Memory owns temporal promotion/supersession. Codegraph owns IR/replay; indexer owns pinned Tree-sitter extraction and incremental observations.

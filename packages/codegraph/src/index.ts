@@ -8,6 +8,7 @@ import { codePayloadSchemas, emptyGraph, logicalSymbolId, normalizePath, validat
 export * from './domain.js';
 export * from './resolve.js';
 export * from './replay.js';
+export * from './audit.js';
 
 interface Snapshot { graph: CodeGraph; runs: IndexRun[]; last_event_sequence: number; graph_hash: string | null }
 const tables = ['code_files', 'code_symbols', 'code_edges', 'code_imports', 'code_index_runs', 'code_projection_state'] as const;
@@ -64,7 +65,7 @@ export class CodeGraphService {
       if (extraction.parserId !== observation.parser_id || extraction.parserVersion !== observation.parser_version || extraction.diagnostics.some((diagnostic) => diagnostic.severity === 'error')) throw new Error('Recorded successful index cannot be reconstructed with this parser');
       files.push({ id: logicalSymbolId(projectId, extraction, extraction.symbols.find((symbol) => symbol.key === '$file')!), observation, extraction });
     }
-    return assembleGraph(projectId, files);
+    return assembleGraph(projectId, files, file => readSourceBlob(database, file.observation.content_hash).content);
   }
   #persistRuns(database: SqliteDatabase, projectId: string, history: CodeHistory): void {
     database.prepare('DELETE FROM code_index_runs WHERE project_id = ?').run(projectId);

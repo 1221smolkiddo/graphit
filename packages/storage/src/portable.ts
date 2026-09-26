@@ -2,13 +2,14 @@ import { createReadStream, createWriteStream } from 'node:fs';
 import { link, unlink, open } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { pipeline } from 'node:stream/promises';
-import { createGzip, createGunzip } from 'node:zlib';
+import { createGzip, createGunzip, gzipSync } from 'node:zlib';
 import { Readable, Writable } from 'node:stream';
 import type { SqliteDatabase } from './sqlite.js';
 import { z } from 'zod';
 import { canonicalJson, contentHash, sha256, hashSchema, timestampSchema, reconstructState, verifyEvent, type GraphEvent } from '@graphit/core';
 import { migrations } from './migrations.js';
 import { readSourceBlob } from './blobs.js';
+import { encryptBundle, decryptBundle, type ArchiveEncryption, type PassphraseSource } from './encryption.js';
 
 const MAGIC = 'GRAPHIT_EXPORT';
 const MAX_EXPORT_BYTES = 256 * 1024 * 1024;
@@ -83,7 +84,7 @@ export function validateExport(data: string) {
 
 /** Consistent project-only snapshot. Sessions/project/checkpoints are already canonical events.
  * Never exports unrelated projects' blobs or any derived index. Refuses to overwrite existing files. */
-export async function exportProject(database: SqliteDatabase, projectId: string, outputPath: string, graphitVersion: string): Promise<ExportManifest> {
+export async function exportProject(database: SqliteDatabase, projectId: string, outputPath: string, graphitVersion: string, encryption?: ArchiveEncryption): Promise<ExportManifest> {
   database.exec('SAVEPOINT graphit_export');
   let body: string;
   let manifest: ExportManifest;
@@ -114,8 +115,14 @@ export async function exportProject(database: SqliteDatabase, projectId: string,
   // no-clobber; unsupported filesystems fail visibly instead of copying.
   const temporary = outputPath + '.' + randomUUID() + '.partial';
   try {
-    await pipeline(Readable.from([body]), createGzip({ level: 9 }), createWriteStream(temporary, { flags: 'wx', mode: 0o600 }));
-    validateExport(await readExportFile(temporary));
+    if (encryption) {
+      const compressed = gzipSync(body, { level: 9 });
+      try {
+        const encrypted = encryptBundle(compressed, encryption.passphrase);
+        await pipeline(Readable.from([encrypted]), createWriteStream(temporary, { flags: 'wx', mode: 0o600 }));
+      } finally { compressed.fill(0); }
+    } else await pipeline(Readable.from([body]), createGzip({ level: 9 }), createWriteStream(temporary, { flags: 'wx', mode: 0o600 }));
+    validateExport(await readExportFile(temporary, encryption?.passphrase));
     const file = await open(temporary, 'r+');
     try { await file.sync(); } finally { await file.close(); }
     await link(temporary, outputPath);
@@ -141,12 +148,21 @@ export function importProject(database: SqliteDatabase, data: string): ImportRes
   } catch (error) { database.exec('ROLLBACK TO graphit_import; RELEASE graphit_import'); throw error; }
 }
 
-export async function readExportFile(filePath: string): Promise<string> {
+export async function readExportFile(filePath: string, passphrase?: PassphraseSource): Promise<string> {
+  const input: Buffer[] = []; let inputSize = 0;
+  await pipeline(createReadStream(filePath), new Writable({ write(chunk: Buffer, _encoding, callback) {
+    inputSize += chunk.length;
+    if (inputSize > MAX_EXPORT_BYTES + 1024 * 1024) { callback(new Error('Bundle exceeds 257 MiB compressed limit')); return; }
+    input.push(chunk); callback();
+  } }));
+  const compressed = await decryptBundle(Buffer.concat(input), passphrase);
   const chunks: Buffer[] = []; let size = 0;
-  await pipeline(createReadStream(filePath), createGunzip(), new Writable({ write(chunk: Buffer, _encoding, callback) {
+  try {
+  await pipeline(Readable.from([compressed]), createGunzip(), new Writable({ write(chunk: Buffer, _encoding, callback) {
     size += chunk.length;
     if (size > MAX_EXPORT_BYTES) { callback(new Error('Export exceeds 256 MiB uncompressed limit')); return; }
     chunks.push(chunk); callback();
   } }));
   return new TextDecoder('utf-8', { fatal: true }).decode(Buffer.concat(chunks));
+  } finally { compressed.fill(0); for (const chunk of chunks) chunk.fill(0); }
 }

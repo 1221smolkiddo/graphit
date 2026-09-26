@@ -1,0 +1,205 @@
+{
+  "schema_version": 1,
+  "measured_at": "2026-09-26T19:00:17.543Z",
+  "node": "v22.17.0",
+  "platform": "win32",
+  "arch": "x64",
+  "installed_package": false,
+  "fixture": {
+    "generator": "scripts/stress-p6c.mjs",
+    "files": 1000,
+    "functions_per_file": 20,
+    "symbols": 22000,
+    "edges": 80000
+  },
+  "samples": [
+    {
+      "name": "initial_index",
+      "elapsed_ms": 231296.6303,
+      "memory_after": {
+        "rss": 574488576,
+        "heapTotal": 335355904,
+        "heapUsed": 285120968,
+        "external": 36984071,
+        "arrayBuffers": 1182659
+      },
+      "index_metrics": {
+        "files_scanned": 1000,
+        "files_parsed": 1000,
+        "files_reused": 0,
+        "bytes_read": 1044710,
+        "symbols_extracted": 22000,
+        "edges_extracted": 80000,
+        "duration_ms": 221347.1232
+      }
+    },
+    {
+      "name": "read_graph",
+      "elapsed_ms": 2023.5652000000118,
+      "memory_after": {
+        "rss": 789389312,
+        "heapTotal": 540258304,
+        "heapUsed": 453620000,
+        "external": 37918459,
+        "arrayBuffers": 2117007
+      }
+    },
+    {
+      "name": "assemble_graph",
+      "elapsed_ms": 1140.508199999982,
+      "memory_after": {
+        "rss": 721682432,
+        "heapTotal": 467505152,
+        "heapUsed": 401194760,
+        "external": 35829039,
+        "arrayBuffers": 27587
+      }
+    },
+    {
+      "name": "unchanged_index",
+      "elapsed_ms": 15461.698399999994,
+      "memory_after": {
+        "rss": 978788352,
+        "heapTotal": 897212416,
+        "heapUsed": 862763128,
+        "external": 35904870,
+        "arrayBuffers": 103418
+      },
+      "index_metrics": {
+        "files_scanned": 1000,
+        "files_parsed": 0,
+        "files_reused": 1000,
+        "bytes_read": 1044710,
+        "symbols_extracted": 0,
+        "edges_extracted": 80000,
+        "duration_ms": 4380.717000000004
+      }
+    },
+    {
+      "name": "one_file_index",
+      "elapsed_ms": 18259.193,
+      "memory_after": {
+        "rss": 1103491072,
+        "heapTotal": 755871744,
+        "heapUsed": 581647064,
+        "external": 35837231,
+        "arrayBuffers": 35779
+      },
+      "index_metrics": {
+        "files_scanned": 1000,
+        "files_parsed": 1,
+        "files_reused": 999,
+        "bytes_read": 1044710,
+        "symbols_extracted": 22,
+        "edges_extracted": 80000,
+        "duration_ms": 5828.526700000017
+      }
+    },
+    {
+      "name": "context_0",
+      "elapsed_ms": 4117.607900000003,
+      "memory_after": {
+        "rss": 1366142976,
+        "heapTotal": 1196994560,
+        "heapUsed": 1149894920,
+        "external": 36032414,
+        "arrayBuffers": 230962
+      },
+      "index_metrics": {
+        "retrieval_ms": 3640.0180999999866,
+        "ppr_ms": 99.04279999999562,
+        "packing_ms": 431.6505999999936,
+        "total_ms": 4117.287000000011
+      }
+    },
+    {
+      "name": "context_1",
+      "elapsed_ms": 3700.061300000001,
+      "memory_after": {
+        "rss": 1319702528,
+        "heapTotal": 666058752,
+        "heapUsed": 627553152,
+        "external": 36024222,
+        "arrayBuffers": 222770
+      },
+      "index_metrics": {
+        "retrieval_ms": 3312.8238999999594,
+        "ppr_ms": 80.2331000000122,
+        "packing_ms": 387.1692000000039,
+        "total_ms": 3700.053899999999
+      }
+    },
+    {
+      "name": "context_2",
+      "elapsed_ms": 4055.144499999995,
+      "memory_after": {
+        "rss": 1239642112,
+        "heapTotal": 480497664,
+        "heapUsed": 391595816,
+        "external": 36091861,
+        "arrayBuffers": 290409
+      },
+      "index_metrics": {
+        "retrieval_ms": 3581.1185000000405,
+        "ppr_ms": 155.94519999995828,
+        "packing_ms": 473.9220000000205,
+        "total_ms": 4055.134699999995
+      }
+    },
+    {
+      "name": "bm25_sql_only",
+      "elapsed_ms": 0.5885000000125729,
+      "memory_after": {
+        "rss": 1239650304,
+        "heapTotal": 480497664,
+        "heapUsed": 391619816,
+        "external": 36091861,
+        "arrayBuffers": 290409
+      }
+    }
+  ],
+  "queries": [
+    {
+      "cache": "cold_search_projection",
+      "retrieval_ms": 3640.0180999999866,
+      "ppr_ms": 99.04279999999562,
+      "packing_ms": 431.6505999999936,
+      "total_ms": 4117.287000000011,
+      "evidence_count": 13,
+      "tokens": 3797
+    },
+    {
+      "cache": "warm",
+      "retrieval_ms": 3312.8238999999594,
+      "ppr_ms": 80.2331000000122,
+      "packing_ms": 387.1692000000039,
+      "total_ms": 3700.053899999999,
+      "evidence_count": 13,
+      "tokens": 3797
+    },
+    {
+      "cache": "warm",
+      "retrieval_ms": 3581.1185000000405,
+      "ppr_ms": 155.94519999995828,
+      "packing_ms": 473.9220000000205,
+      "total_ms": 4055.134699999995,
+      "evidence_count": 13,
+      "tokens": 3797
+    }
+  ],
+  "bm25_hit_count": 20,
+  "archive_ms": 1835.506400000013,
+  "sizes": {
+    "source_blob_bytes": 1045681,
+    "graph_projection_json_bytes": 81773765,
+    "archive_bytes": 313020,
+    "database_bytes_after_close": 172199936
+  },
+  "peak_rss_bytes": 1474207744,
+  "notes": [
+    "Single local run; not a cross-platform SLA.",
+    "Unchanged indexing still validates and republishes derived projections.",
+    "retrieval_ms includes PPR and projection validation; bm25_sql_only isolates FTS5.",
+    "Memory samples are process-wide; maxRSS is OS high-water mark."
+  ]
+}

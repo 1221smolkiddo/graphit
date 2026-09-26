@@ -96,7 +96,7 @@ export class RepositoryIndexer {
             previous_content_hash: file.observation.content_hash, observed_at: new Date().toISOString() } });
           next.delete(file.extraction.path);
         }
-        if (!errors.length) metrics.edges_extracted = assembleGraph(projectId, [...next.values()]).edges.length;
+        if (!errors.length) metrics.edges_extracted = assembleGraph(projectId, [...next.values()], file => this.store.readSourceBlob(file.observation.content_hash).content).edges.length;
         metrics.duration_ms = performance.now() - started;
         tx.append({ event_type: errors.length ? 'code.index.failed' : 'code.index.completed', payload: {
           index_run_id, completed_at: new Date().toISOString(), files_seen: metrics.files_scanned, files_changed: changed.length,

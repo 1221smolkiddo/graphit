@@ -116,7 +116,7 @@ export async function inspectProject(root: string | undefined, projectId?: strin
         const extraction = validateExtraction(parser.parse(bytes, observation.path), bytes, observation.path, observation.language);
         files.push({ id: logicalSymbolId(selected!, extraction, extraction.symbols.find((symbol) => symbol.key === '$file')!), observation, extraction });
       }
-      const expected = assembleGraph(selected!, files);
+      const expected = assembleGraph(selected!, files, file => readSourceBlob(database, file.observation.content_hash).content);
       const rows = (table: string, column: string, order: string) => database.prepare(`SELECT ${column} FROM ${table} WHERE project_id = ? ORDER BY ${order}`).all(selected!)
         .map((row) => JSON.parse(String(row[column])) as unknown);
       const cursor = database.prepare('SELECT * FROM code_projection_state WHERE project_id = ?').get(selected!);
@@ -130,7 +130,7 @@ export async function inspectProject(root: string | undefined, projectId?: strin
       const cursor = database.prepare('SELECT document_hash FROM retrieval_projection_state WHERE project_id = ?').get(selected!);
       report.retrieval_index_present = !!cursor;
       if (!cursor) { report.warnings.push('Retrieval index not built; run graphit retrieve'); return; }
-      const graph = assembleGraph(selected!, files);
+      const graph = assembleGraph(selected!, files, file => readSourceBlob(database, file.observation.content_hash).content);
       const sort = <T extends { id: string }>(rows: T[]) => rows.sort((a, b) => a.id < b.id ? -1 : 1);
       const expected = { memory: sort(memory.entities.map((entity) => ({ id: entity.id, content: searchable(entity.content), entity_type: entity.entity_type, status: entity.status }))),
         code: sort(graph.symbols.map((symbol) => ({ id: symbol.logical_symbol_id, name: searchable(symbol.name), qualified_name: searchable(symbol.qualifiedName), path: searchable(symbol.path), signature: searchable(symbol.signature ?? '') }))) };

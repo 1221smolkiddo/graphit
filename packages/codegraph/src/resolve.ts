@@ -1,5 +1,5 @@
 import { posix } from 'node:path';
-import { contentHash } from '@graphit/core';
+import { contentHash, sha256 } from '@graphit/core';
 import { emptyGraph, logicalSymbolId, type CodeEdge, type CodeFile, type CodeGraph, type CodeSymbol,
   type ExtractedImport, type ExtractedRelationship, type SourceSpan } from './domain.js';
 
@@ -26,7 +26,7 @@ function localModule(file: CodeFile, item: ExtractedImport, files: readonly Code
   return matches.length === 1 ? matches[0] : undefined;
 }
 
-export function assembleGraph(projectId: string, files: CodeFile[]): CodeGraph {
+export function assembleGraph(projectId: string, files: CodeFile[], sourceForFile?: (file: CodeFile) => Uint8Array): CodeGraph {
   const graph = emptyGraph();
   graph.files = [...files].sort((a, b) => a.extraction.path < b.extraction.path ? -1 : a.extraction.path > b.extraction.path ? 1 : 0);
   const symbols = new Map<string, Map<string, CodeSymbol>>();
@@ -42,13 +42,14 @@ export function assembleGraph(projectId: string, files: CodeFile[]): CodeGraph {
     }
     symbols.set(file.id, local); graph.diagnostics.push(...file.extraction.diagnostics);
   }
+  const edgeIds = new Set<string>();
   const edge = (file: CodeFile, source: CodeSymbol, target: CodeSymbol, type: CodeEdge['edge_type'], span: SourceSpan,
     resolution: CodeEdge['resolution_type']): void => {
     const item: Omit<CodeEdge, 'id'> = { project_id: projectId, source_id: source.logical_symbol_id, target_id: target.logical_symbol_id,
       edge_type: type, span, resolution_type: resolution, classification: resolution === 'SYNTACTIC' ? 'EXTRACTED' : 'RESOLVED',
       observation_event_id: file.observation.event_id };
     const id = contentHash({ domain: 'graphit:edge:v1', ...item });
-    if (!graph.edges.some((existing) => existing.id === id)) graph.edges.push({ id, ...item });
+    if (!edgeIds.has(id)) { edgeIds.add(id); graph.edges.push({ id, ...item }); }
   };
   const targets = new Map<ExtractedImport, CodeFile | undefined>();
   for (const file of graph.files) {
@@ -82,15 +83,54 @@ export function assembleGraph(projectId: string, files: CodeFile[]): CodeGraph {
     }
     return [];
   }
-  function exportedTargets(file: CodeFile, name: string): CodeSymbol[] {
+  function exportedTargets(file: CodeFile, name: string, visited = new Set<string>()): CodeSymbol[] {
+    const identity = file.id + ':' + name;
+    if (visited.has(identity) || visited.size >= 64) return [];
+    const next = new Set(visited).add(identity);
     const local = symbols.get(file.id)!;
     if (file.extraction.relationships.some((item) => item.unsafe && item.targetName === name)) return [];
     const direct = [...local.values()].filter((symbol) => symbol.parent === '$module' && symbol.exported && symbol.name === name);
     const aliases = [...local.values()].filter((symbol) => symbol.kind === 'export' && symbol.name === name);
+    // Multiple declarations of the export name are invalid/ambiguous, even if
+    // two paths might eventually point at the same symbol.
+    if (direct.length + aliases.length > 1) return [];
     for (const alias of aliases) for (const relation of file.extraction.relationships.filter((item) => item.kind === 'EXPORTS' && item.span.startByte >= alias.span.startByte && item.span.endByte <= alias.span.endByte)) {
-      direct.push(...localBindings(file, relation.targetName, '$module'));
+      if (relation.unsafe || relation.receiver) return [];
+      direct.push(...moduleBinding(file, relation.targetName, next, alias));
     }
     return [...new Map(direct.map((symbol) => [symbol.logical_symbol_id, symbol])).values()];
+  }
+  const sourceText = new Map<string, string>();
+  function valueExport(file: CodeFile, alias: CodeSymbol): boolean {
+    // The v1 IR does not distinguish type-only exports. Consult immutable source
+    // for the new forwarding case; missing evidence must never imply a value.
+    if (!sourceForFile) return false;
+    let text = sourceText.get(file.id);
+    if (text === undefined) {
+      const bytes = sourceForFile(file);
+      if (sha256(bytes) !== file.extraction.contentHash) throw new Error('Resolver source identity mismatch');
+      text = Buffer.from(bytes).toString('utf8'); sourceText.set(file.id, text);
+    }
+    for (const match of text.matchAll(/\bexport\s*\{[^{};]*\}\s*(?:;|(?=\r?\n|$))/g)) {
+      const start = Buffer.byteLength(text.slice(0, match.index));
+      const end = start + Buffer.byteLength(match[0]);
+      if (start <= alias.span.startByte && end >= alias.span.endByte && !/\btype\b/.test(match[0])) return true;
+    }
+    return false;
+  }
+  function moduleBinding(file: CodeFile, name: string, visited: Set<string>, alias: CodeSymbol): CodeSymbol[] {
+    if (file.extraction.relationships.some(item => item.unsafe && item.targetName === name)) return [];
+    const bindings = localBindings(file, name, '$module');
+    const imported = file.extraction.imports.flatMap(entry => entry.bindings
+      .filter(binding => binding.local === name && symbols.get(file.id)!.get(entry.key)?.parent === '$module')
+      .map(binding => ({ entry, binding })));
+    if (bindings.length) return imported.length ? [] : bindings;
+    if (imported.length !== 1) return [];
+    const { entry, binding } = imported[0]!;
+    if (/\btype\b/.test(symbols.get(file.id)!.get(entry.key)!.name) || !valueExport(file, alias)) return [];
+    const target = targets.get(entry);
+    // Namespace-object forwarding requires additional semantics. Never guess.
+    return target && binding.imported !== '*' ? exportedTargets(target, binding.imported, visited) : [];
   }
   function resolve(file: CodeFile, item: ExtractedRelationship): { target?: CodeSymbol; resolution: CodeEdge['resolution_type'] } {
     if (item.unsafe) return { resolution: 'LEXICAL' };

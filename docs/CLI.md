@@ -24,8 +24,8 @@
 | `memory link <memory-id> --symbol <symbol-id>` | Explicit memory/code association |
 | `doctor [--json]` | Read-only integrity and projection checks |
 | `repair [--json]` | Transactionally rebuild all local database projections; never change canonical events/blobs |
-| `export <output>` | Create an exclusive checksummed `.graphit` archive; no overwrite |
-| `import <file>` | Validate/import into a clean directory; no merge/overwrite |
+| `export <output> [--encrypt] [--passphrase-env NAME]` | Create an exclusive plaintext or authenticated encrypted archive; no overwrite |
+| `import <file> [--passphrase-env NAME]` | Auto-detect encryption, authenticate and validate before importing into a clean directory |
 | `mcp [--project <path-or-id>]` | Stdio MCP; optional session metadata flags |
 | `mcp doctor [--project <path-or-id>]` | Read-only readiness, JSON |
 | `mcp config [--json]` | Print configuration; does not edit a client config |
