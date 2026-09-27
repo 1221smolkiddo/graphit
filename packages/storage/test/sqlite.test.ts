@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { gunzipSync } from 'node:zlib';
 import { afterEach, describe, expect, it } from 'vitest';
-import { EventStore, SqliteDatabase } from '@graphit/storage';
+import { EventStore, migrations, SqliteDatabase } from '@graphit/storage';
 
 const directories: string[] = [];
 const handles: { close(): void }[] = [];
@@ -19,6 +19,10 @@ afterEach(() => {
 });
 
 describe('production SQLite driver compatibility', () => {
+  it('ships LF migration bytes on every platform so historical checksums stay identical', () => {
+    for (const migration of migrations) expect(migration.sql).not.toContain('\r');
+  });
+
   it('opens a real P5 database without changing its ledger, schema, events, blobs or existing FTS index', () => {
     const legacy = JSON.parse(readFileSync(new URL('./fixtures/legacy-p5.json', import.meta.url), 'utf8')) as {
       project_id: string; events: unknown[]; blob_hash: string; database_gzip_base64: string;

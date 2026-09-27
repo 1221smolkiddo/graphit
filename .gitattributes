@@ -1,0 +1,2 @@
+# Migration checksums are byte-exact. Windows checkout must not rewrite SQL.
+packages/storage/migrations/*.sql text eol=lf
