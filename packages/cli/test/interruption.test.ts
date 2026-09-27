@@ -75,10 +75,17 @@ describe('P6B real process interruption and recovery', () => {
       import fs from 'node:fs'; import { syncBuiltinESMExports } from 'node:module';
       const create = fs.createWriteStream;
       fs.createWriteStream = (...args) => {
-        const stream = create(...args); const write = stream._write;
-        stream._write = function(chunk, encoding, callback) {
-          write.call(this, chunk, encoding, error => { if (!error) { ${pause} } callback(error); });
-        }; return stream;
+        const stream = create(...args);
+        // Gzip may batch chunks through _writev instead of _write, depending
+        // on Node patch version and scheduling. Pause after either real write.
+        for (const method of ['_write', '_writev']) {
+          const write = stream[method];
+          stream[method] = function(...args) {
+            const callback = args.pop();
+            write.call(this, ...args, error => { if (!error) { ${pause} } callback(error); });
+          };
+        }
+        return stream;
       };
       syncBuiltinESMExports();
       process.chdir(process.argv[1]); process.argv = [process.execPath, 'export', process.argv[2]];
