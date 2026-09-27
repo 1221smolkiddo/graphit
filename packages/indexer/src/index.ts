@@ -1,9 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
-import { realpathSync } from 'node:fs';
-import { resolve } from 'node:path';
 import { performance } from 'node:perf_hooks';
-import { sha256 } from '@graphit/core';
+import { canonicalLocalPath, sha256 } from '@graphit/core';
 import { EventStore } from '@graphit/storage';
 import { CodeGraphService, assembleGraph, logicalSymbolId, replayCodeHistory, validateExtraction,
   type CodeFile, type ExtractedFile, type FileObservation, type IndexMetrics, type IndexRun, type ParserRegistry } from '@graphit/codegraph';
@@ -30,7 +28,7 @@ export class RepositoryIndexer {
 
   index(projectId: string, rootPath: string, options: IndexOptions = {}): IndexRun {
     const started = performance.now();
-    const root = realpathSync(resolve(rootPath));
+    const root = canonicalLocalPath(rootPath);
     if (this.store.findProject(root)?.project?.id !== projectId) throw new Error('Index path must be the project root, not a subtree or another project');
     const canonicalRoot = this.store.getState(projectId).project!.root_path;
     const unfinished = this.graph.getRuns(projectId).find((run) => run.status === 'running');

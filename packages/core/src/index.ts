@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { z } from 'zod';
 import { sessionMetadataSchema, sourcePayloadSchemas, type SessionMetadata, type SourceEventData } from './source-schemas.js';
 export * from './source-schemas.js';
+export { canonicalLocalPath } from './local-path.js';
 
 export type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
 

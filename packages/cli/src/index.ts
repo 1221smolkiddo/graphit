@@ -4,7 +4,7 @@ import { basename, dirname, join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { EventStore, readExportFile, validateExport } from '@graphit/storage';
 import type { ProjectState } from '@graphit/core';
-import { requireSupportedNode } from '@graphit/core';
+import { canonicalLocalPath, requireSupportedNode } from '@graphit/core';
 import { MemoryService, entityTypeSchema, statusSchema } from '@graphit/memory';
 import { CodeGraphService } from '@graphit/codegraph';
 import { createParserRegistry, RepositoryIndexer } from '@graphit/indexer';
@@ -54,7 +54,7 @@ Repeat --source-event to attach multiple evidence events.
 Handoff always emits JSON. Resume retains its P0 behavior.`;
 
 function findRoot(start: string): string | undefined {
-  let candidate = start;
+  let candidate = canonicalLocalPath(start);
   while (true) {
     if (existsSync(join(candidate, '.graphit', 'graphit.db'))) return candidate;
     const parent = dirname(candidate);
@@ -136,7 +136,7 @@ async function main(): Promise<void> {
   }
   if (command === 'doctor' || route === 'mcp doctor') {
     const isId = values.project !== undefined && /^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(values.project);
-    const root = findRoot(realpathSync(resolve(isId ? process.cwd() : values.project ?? process.cwd())));
+    const root = findRoot(canonicalLocalPath(isId ? process.cwd() : values.project ?? process.cwd()));
     const result = await inspectProject(root, isId ? values.project : undefined);
     console.log(values.json || route === 'mcp doctor' ? JSON.stringify(result, null, 2) :
       'Graphit Doctor\n' + Object.entries(result).map(([key, value]) => `  ${key}: ${typeof value === 'object' ? JSON.stringify(value) : String(value)}`).join('\n'));
@@ -147,7 +147,7 @@ async function main(): Promise<void> {
   if (command === 'export' && values['passphrase-env'] !== undefined && !values.encrypt) throw new Error('--passphrase-env requires --encrypt for export');
   if (command === 'mcp') {
     if (route === 'mcp config') {
-      const cwd = realpathSync(resolve(process.cwd()));
+      const cwd = canonicalLocalPath(process.cwd());
       const config = {
         mcpServers: {
           graphit: {
@@ -183,7 +183,7 @@ The server discovers .graphit/graphit.db from the working directory.`);
   // Import does not require an existing project
   if (command === 'import') {
     const filePath = realpathSync(resolve(positionals[1]!));
-    const cwd = realpathSync(resolve(process.cwd()));
+    const cwd = canonicalLocalPath(process.cwd());
     const destination = join(cwd, '.graphit');
     if (existsSync(destination) || findRoot(cwd)) throw new Error('Import into a clean directory outside an existing Graphit project');
     const data = await readExportFile(filePath, () => readPassphrase(values['passphrase-env']));
@@ -211,8 +211,8 @@ The server discovers .graphit/graphit.db from the working directory.`);
     }
     return;
   }
-  const cwd = realpathSync(resolve(process.cwd()));
-  const target = command === 'index' && positionals[1] !== undefined ? realpathSync(resolve(cwd, positionals[1])) : cwd;
+  const cwd = canonicalLocalPath(process.cwd());
+  const target = command === 'index' && positionals[1] !== undefined ? canonicalLocalPath(resolve(cwd, positionals[1])) : cwd;
   const existingRoot = findRoot(target);
   if (command !== 'init' && command !== 'index' && !existingRoot) throw new Error('No Graphit project found; run graphit init');
   if (command === 'init' && existingRoot && existingRoot !== cwd) throw new Error(`Already inside a Graphit project: ${existingRoot}`);

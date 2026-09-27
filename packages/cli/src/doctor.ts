@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { SqliteDatabase } from '@graphit/storage';
 import { canonicalJson, contentHash, reconstructState, sha256, verifyEvent, type GraphEvent } from '@graphit/core';
-import { nodeSupported, supportedNodeRange } from '@graphit/core';
+import { canonicalLocalPath, nodeSupported, supportedNodeRange } from '@graphit/core';
 import { migrations, readSourceBlob, assertSchemaObjects } from '@graphit/storage';
 import { replayMemory } from '@graphit/memory';
 import { assembleGraph, logicalSymbolId, replayCodeHistory, validateExtraction, type CodeFile } from '@graphit/codegraph';
@@ -77,7 +77,7 @@ export async function inspectProject(root: string | undefined, projectId?: strin
       if (!binding || typeof binding !== 'object' || Object.keys(binding).join() !== 'project_id' || !('project_id' in binding) || typeof binding.project_id !== 'string') throw new Error('Invalid local project binding');
       selected = binding.project_id;
     }
-    selected ??= events.find((event) => event.event_type === 'project.created' && event.payload.root_path === root)?.project_id;
+    selected ??= events.find((event) => event.event_type === 'project.created' && canonicalLocalPath(event.payload.root_path) === canonicalLocalPath(root))?.project_id;
     if (!selected) throw new Error('No project matches this directory');
     const history: GraphEvent[] = events.filter((event) => event.project_id === selected);
     if (!reconstructState(history).project) throw new Error('Project does not exist');

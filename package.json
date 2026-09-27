@@ -64,7 +64,7 @@
   "dependencies": {
     "@modelcontextprotocol/server": "2.1.0",
     "@vscode/tree-sitter-wasm": "0.3.1",
-    "better-sqlite3": "13.0.3",
+    "better-sqlite3": "12.11.1",
     "graphit-zod-v4": "npm:zod@^4.2.0",
     "zod": "^3.24.2"
   },

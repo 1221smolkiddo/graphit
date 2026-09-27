@@ -1,11 +1,11 @@
 import { randomUUID } from 'node:crypto';
-import { resolve, dirname, join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { SqliteDatabase } from './sqlite.js';
 import { recoveryGuidance } from './sqlite.js';
 export { SqliteDatabase } from './sqlite.js';
 import {
-  applyEvent, canonicalJson, contentHash, createEvent, reconstructState, verifyEvent,
+  applyEvent, canonicalJson, canonicalLocalPath, contentHash, createEvent, reconstructState, verifyEvent,
   sessionMetadataSchema, type AppendEventInput, type Checkpoint, type EventData, type GraphEvent,
   type ProjectState, type Session, type SessionMetadata,
 } from '@graphit/core';
@@ -61,7 +61,7 @@ export class EventStore {
   readonly #writerSessions = new Map<string, string>();
 
   constructor(path: string, options: StoreOptions = {}) {
-    this.#path = resolve(path);
+    this.#path = canonicalLocalPath(path);
     this.#clock = options.clock ?? (() => new Date().toISOString());
     if (existsSync(path) && statSync(path).size === 0) throw new Error(`Empty existing database; refusing to recreate it. ${recoveryGuidance}`);
     this.#database = new SqliteDatabase(path);
@@ -225,15 +225,15 @@ export class EventStore {
   }
 
   findProject(rootPath: string): ProjectState | undefined {
-    const absolutePath = resolve(rootPath);
+    const absolutePath = canonicalLocalPath(rootPath);
     // Machine-local attachment never changes canonical project identity or historical paths.
     const binding = join(absolutePath, '.graphit', 'project.json');
-    if (dirname(this.#path) === join(absolutePath, '.graphit') && existsSync(binding)) {
+    if (dirname(this.#path) === canonicalLocalPath(join(absolutePath, '.graphit')) && existsSync(binding)) {
       const value: unknown = JSON.parse(readFileSync(binding, 'utf8'));
       if (!value || typeof value !== 'object' || Object.keys(value).join() !== 'project_id' || !('project_id' in value) || typeof value.project_id !== 'string') throw new Error('Invalid local project binding');
       return this.getState(value.project_id);
     }
-    return this.listProjects().find((state) => state.project?.root_path === absolutePath);
+    return this.listProjects().find((state) => state.project && canonicalLocalPath(state.project.root_path) === absolutePath);
   }
 
   #project(state: ProjectState): void {
@@ -300,7 +300,7 @@ export class EventStore {
 
   initializeProject(rootPath: string, name: string): ProjectState {
     return this.#transaction(() => {
-      const root_path = resolve(rootPath);
+      const root_path = canonicalLocalPath(rootPath);
       if (this.findProject(root_path)) throw new Error('Project is already initialized');
       const project_id = randomUUID();
       const session_id = randomUUID();

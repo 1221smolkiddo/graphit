@@ -1,8 +1,8 @@
-import { existsSync, realpathSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { existsSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { McpServer, type CallToolResult } from '@modelcontextprotocol/server';
 import { serveStdio } from '@modelcontextprotocol/server/stdio';
-import { canonicalJson, type SessionMetadata } from '@graphit/core';
+import { canonicalJson, canonicalLocalPath, type SessionMetadata } from '@graphit/core';
 import { EventStore } from '@graphit/storage';
 import { MemoryService } from '@graphit/memory';
 import { CodeGraphService } from '@graphit/codegraph';
@@ -37,7 +37,7 @@ export function createMcpServer(api: GraphitApi): McpServer {
 /** Paths are startup configuration, never MCP request arguments. IDs resolve only in the discovered database. */
 export async function openGraphit(options: { cwd?: string; project?: string; metadata?: SessionMetadata } = {}) {
   const isId = options.project !== undefined && /^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(options.project);
-  let root = realpathSync(resolve(isId ? options.cwd ?? process.cwd() : options.project ?? options.cwd ?? process.cwd()));
+  let root = canonicalLocalPath(isId ? options.cwd ?? process.cwd() : options.project ?? options.cwd ?? process.cwd());
   while (!existsSync(join(root, '.graphit', 'graphit.db'))) {
     const parent = dirname(root);
     if (parent === root) throw new Error('No Graphit project found; run graphit init');

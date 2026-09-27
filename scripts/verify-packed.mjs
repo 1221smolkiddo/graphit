@@ -45,8 +45,11 @@ async function call(client, name, args = {}) {
 }
 try {
   assert.ok(process.env.npm_execpath, 'Run with npm run verify:packed -- <tarball>');
+  // Supported release targets must install using prebuilds, not a developer's
+  // accidentally available Python/C++ toolchain. Do not disable install scripts.
+  const installEnv = { ...env, NODE_GYP_FORCE_PYTHON: join(sandbox, 'no-python-for-native-builds') };
   execFileSync(process.execPath, [process.env.npm_execpath, 'install', '--global', '--prefix', prefix, archive,
-    '--no-audit', '--no-fund'], { cwd: sandbox, env, stdio: 'pipe' });
+    '--no-audit', '--no-fund'], { cwd: sandbox, env: installEnv, stdio: 'pipe' });
   assert.ok(existsSync(cli));
   assert.equal(existsSync(join(installedRoot, 'packages')), false, 'No workspace is shipped');
   assert.equal(existsSync(join(installedRoot, 'node_modules/@graphit')), false, 'No private runtime package resolution');
@@ -62,9 +65,11 @@ try {
   // Exercise the installed native loader's source-build-required branch without
   // changing installed binaries or pretending a native compilation succeeded.
   const missingNative = spawnSync(process.execPath, ['--input-type=module', '-e', `
-    import fs from 'node:fs';
-    const exists = fs.existsSync;
-    fs.existsSync = path => String(path).includes('prebuilds') ? false : exists(path);
+    const dlopen = process.dlopen;
+    process.dlopen = (module, path, ...args) => {
+      if (String(path).endsWith('better_sqlite3.node')) throw new Error('Cannot load native SQLite binding');
+      return dlopen(module, path, ...args);
+    };
     process.argv = [process.execPath, 'doctor', '--json'];
     await import(${JSON.stringify(pathToFileURL(cli).href)});
   `], { cwd: sandbox, env, encoding: 'utf8' });

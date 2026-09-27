@@ -78,10 +78,11 @@ describe('P6B corruption and derived repair', () => {
 
   it('reports native binary load failures with platform and manual-build guidance', () => {
     const script = `
-      import { createRequire } from 'node:module';
-      const require = createRequire(import.meta.url);
-      const fs = require('node:fs'); const exists = fs.existsSync;
-      fs.existsSync = path => String(path).includes('prebuilds') ? false : exists(path);
+      const dlopen = process.dlopen;
+      process.dlopen = (module, path, ...args) => {
+        if (String(path).endsWith('better_sqlite3.node')) throw new Error('Cannot load native SQLite binding');
+        return dlopen(module, path, ...args);
+      };
       const { SqliteDatabase } = await import('@graphit/storage');
       try { new SqliteDatabase(':memory:'); process.exitCode = 2; }
       catch (error) { console.log(error.message); }
