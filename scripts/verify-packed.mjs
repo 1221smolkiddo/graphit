@@ -12,7 +12,7 @@ import { pathToFileURL } from 'node:url';
 import { Client } from '@modelcontextprotocol/client';
 import { StdioClientTransport } from '@modelcontextprotocol/client/stdio';
 
-const archive = realpathSync(resolve(process.argv[2] ?? 'graphit-0.1.0.tgz'));
+const archive = realpathSync(resolve(process.argv[2] ?? 'graphit-cmp-1.0.0.tgz'));
 const sandbox = mkdtempSync(join(tmpdir(), 'graphit-packed-'));
 const clients = new Set();
 const serverLogs = [];
@@ -20,7 +20,7 @@ const env = { ...process.env }; delete env.NODE_PATH; delete env.NODE_OPTIONS; d
 const prefix = join(sandbox, 'prefix');
 const project = join(sandbox, 'project');
 const imported = join(sandbox, 'imported');
-const installedRoot = join(prefix, process.platform === 'win32' ? 'node_modules' : 'lib/node_modules', 'graphit');
+const installedRoot = join(prefix, process.platform === 'win32' ? 'node_modules' : 'lib/node_modules', 'graphit-cmp');
 const cli = join(installedRoot, 'dist/cli/index.js');
 function checked(command, args, options) {
   const result = spawnSync(command, args, { ...options, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
@@ -54,7 +54,7 @@ try {
   assert.equal(existsSync(join(installedRoot, 'packages')), false, 'No workspace is shipped');
   assert.equal(existsSync(join(installedRoot, 'node_modules/@graphit')), false, 'No private runtime package resolution');
   const metadata = JSON.parse(readFileSync(join(installedRoot, 'package.json'), 'utf8'));
-  assert.equal(metadata.version, '0.1.0'); assert.equal(metadata.bin.graphit, 'dist/cli/index.js');
+  assert.equal(metadata.version, '1.0.0'); assert.equal(metadata.bin.graphit, 'dist/cli/index.js');
   const binary = process.platform === 'win32' ? join(prefix, 'graphit.cmd') : join(prefix, 'bin/graphit');
   const version = process.platform === 'win32'
     ? checked(process.env.ComSpec ?? 'cmd.exe', ['/d', '/s', '/c', `""${binary}" --version"`], { cwd: sandbox, env, windowsVerbatimArguments: true })

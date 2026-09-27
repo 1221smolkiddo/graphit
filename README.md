@@ -27,7 +27,7 @@ Requires Node.js **22.0.0 or newer** and a local filesystem suitable for SQLite 
 This build is **not published**. The requested name `graphit` and version `0.1.0` are already registered on npm to another maintainer; `npm install -g graphit` currently installs that other package. Until an available package identity is settled, install the verified local tarball:
 
 ```sh
-npm install -g ./graphit-0.1.0.tgz
+npm install -g graphit-cmp
 graphit --version
 graphit --help
 ```
@@ -89,7 +89,7 @@ npm run lint
 npm run build
 npm pack --dry-run
 npm pack
-npm run verify:packed -- ./graphit-0.1.0.tgz
+npm run verify:packed -- ./graphit-cmp-1.0.0.tgz
 npm run mcp:smoke
 node examples/context-demo.mjs
 ```

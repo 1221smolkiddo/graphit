@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       confirmation:
-        description: 'Leave blank for verification only; publishing requires: publish graphit@0.1.0'
+        description: 'Leave blank for verification only; publishing requires: publish graphit-cmp@1.0.0'
         required: false
         default: ''
         type: string
@@ -24,7 +24,7 @@ jobs:
     needs: verify
     if: >-
       github.ref == 'refs/heads/main' &&
-      inputs.confirmation == 'publish graphit@0.1.0' &&
+      inputs.confirmation == 'publish graphit-cmp@1.0.0' &&
       vars.ENABLE_NPM_PUBLISH == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -54,4 +54,4 @@ jobs:
       - run: npm run verify:packed
       # Never uses an npm token secret. Configure this exact workflow/environment
       # as a trusted publisher only after package ownership has been resolved.
-      - run: npm publish ./graphit-0.1.0.tgz --access public --provenance
+      - run: npm publish ./graphit-cmp-1.0.0.tgz --access public --provenance

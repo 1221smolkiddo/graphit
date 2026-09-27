@@ -1,6 +1,6 @@
 {
-  "name": "graphit",
-  "version": "0.1.0",
+  "name": "graphit-cmp",
+  "version": "1.0.0",
   "description": "Local project memory, code intelligence and MCP server for AI coding agents. Preserves canonical source evidence, durable memory, provider-neutral handoff and token-budgeted context.",
   "license": "MIT",
   "repository": {
