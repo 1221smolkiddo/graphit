@@ -1,6 +1,6 @@
 # MCP: provider-neutral continuation
 
-Graphit 0.1.0 uses `@modelcontextprotocol/server` **2.1.0** and stdio, with a transport-independent project-bound API. No HTTP service or provider SDK is required. Start with `graphit mcp --project <project-directory>`; stdout is protocol only, errors are stderr.
+Graphit 1.0.0 uses `@modelcontextprotocol/server` **2.1.0** and stdio, with a transport-independent project-bound API. No HTTP service or provider SDK is required. Start with `graphit mcp --project <project-directory>`; stdout is protocol only, errors are stderr.
 
 ## Client setup
 
@@ -51,4 +51,4 @@ Context is exactly the canonical P3 packet. Check `budget.budget_insufficient`; 
 
 `graphit mcp doctor [--project <path-or-id>]` performs the same read-only evidence/projection checks as `graphit doctor`, including runtime/MCP versions and migration status. No repair occurs.
 
-Tests use the actual SDK client and child processes with Anthropic/OpenAI metadata, not paid provider APIs or proprietary host applications. `npm run mcp:smoke` tests the checkout; `npm run verify:packed -- ./graphit-0.1.0.tgz` tests an isolated installation, export/import and real MCP restart. Token estimates are approximate; stdio hosts add their own framing overhead.
+Tests use the actual SDK client and child processes with Anthropic/OpenAI metadata, not paid provider APIs or proprietary host applications. `npm run mcp:smoke` tests the checkout; `npm run verify:packed -- ./graphit-cmp-1.0.0.tgz` tests an isolated installation, export/import and real MCP restart. Token estimates are approximate; stdio hosts add their own framing overhead.

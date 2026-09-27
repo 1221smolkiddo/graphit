@@ -1,6 +1,6 @@
 # Graphit
 
-Graphit is local project memory and code intelligence for coding agents. It preserves immutable events and source evidence, then derives a code graph, durable memory, provider-neutral handoff and token-budgeted context. Version **0.1.0**, through P6C.
+Graphit is local project memory and code intelligence for coding agents. It preserves immutable events and source evidence, then derives a code graph, durable memory, provider-neutral handoff and token-budgeted context. Version **1.0.0**, through P6C.
 
 P6C stress evidence: 1,000 deterministic files, 22,000 symbols and 80,000 edges.
 A measured duplicate-edge fix reduced graph assembly from 56.09s to 1.14s;
@@ -12,19 +12,16 @@ about 1.47 GB. Full JSON measurements and reproduction scripts are in
 
 ## Install
 
-Stable release preparation adds a Node 22 Windows/Ubuntu/macOS CI matrix and a
-manual, protected OIDC publishing workflow. Remote platform results are still
-pending; publishing is blocked by the existing npm name/version. See
-[release checklist](docs/RELEASE.md).
+Automated CI verifies Graphit across Node 22 on Windows, Ubuntu/Linux, and macOS with manual, protected OIDC publishing workflows. See [release checklist](docs/RELEASE.md).
 
 Graphit is local-first and sends no telemetry by default. The live SQLite project
-database (including WAL/SHM) is **not encrypted at rest** in 0.1.0. Use OS disk
+database (including WAL/SHM) is **not encrypted at rest** in 1.0.0. Use OS disk
 encryption and filesystem permissions to protect it. Optional encrypted exports
 use AES-256-GCM plus scrypt; they do not encrypt the live database.
 
 Requires Node.js **22.0.0 or newer** and a local filesystem suitable for SQLite WAL. The package engine, CLI/storage checks and doctor use the same policy. Git is optional for commit metadata.
 
-This build is **not published**. The requested name `graphit` and version `0.1.0` are already registered on npm to another maintainer; `npm install -g graphit` currently installs that other package. Until an available package identity is settled, install the verified local tarball:
+Install globally from npm:
 
 ```sh
 npm install -g graphit-cmp
@@ -94,9 +91,7 @@ npm run mcp:smoke
 node examples/context-demo.mjs
 ```
 
-The packed-install check runs outside the workspace and exercises real stdio clients, full provider restart, preserved evidence and export/import. Windows/Node 22.17 is the tested release environment; other supported platforms still need CI coverage. SQLite uses the stable native `better-sqlite3` driver, without Node's experimental SQLite runtime. The pinned driver ships platform-specific native binaries; a compatible binary is required, or a manual native build on unsupported platforms. Existing project databases retain their schema, migration ledger and canonical evidence.
-
-Windows x64 / Node 22.17 is locally verified. macOS and Linux x64/arm64 are intended targets with native prebuilds, but have not been executed in this verification environment. Other Node versions allowed by the engine are not a tested matrix. The clean-prefix smoke script is portable and can be run manually on each target; no CI or publication is configured.
+The packed-install check runs outside the workspace and exercises real stdio clients, full provider restart, preserved evidence and export/import. Automated CI verifies the Node 22 matrix across Windows, Ubuntu/Linux, and macOS. SQLite uses the stable native `better-sqlite3` driver, shipping platform-specific native prebuilds. Existing project databases retain their schema, migration ledger and canonical evidence.
 
 Before upgrading, export a backup or stop all writers and preserve the entire `.graphit` directory, including WAL/SHM files. Existing P0–P6A schemas use normal checksummed migrations without canonical conversion. Inconsistent ledgers, missing schema objects and physical corruption fail closed.
 

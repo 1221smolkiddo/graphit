@@ -52,7 +52,7 @@ export interface SiteConfig {
   license: string;
   
   // Privacy & Contact
-  privacyContactEmail: string;
+  privacyContactEmail: string | null;
   privacyLastUpdated: string;
   
   // Benchmarks
@@ -78,15 +78,15 @@ export const siteConfig: SiteConfig = {
   corePrinciple: 'History is immutable. Memory is derived. Context is disposable.',
 
   // Central Package & Repository Config (Change once here!)
-  packageName: '@smolkiddo/graphit',
-  installCommand: 'npm install -g @smolkiddo/graphit',
+  packageName: 'graphit-cmp',
+  installCommand: 'npm install -g graphit-cmp',
   githubUrl: 'https://github.com/1221smolkiddo/graphit',
   githubIssuesUrl: 'https://github.com/1221smolkiddo/graphit/issues',
-  version: '0.1.0',
+  version: '1.0.0',
   license: 'MIT',
 
-  // Configurable privacy contact and date
-  privacyContactEmail: 'privacy@graphit.local',
+  // Configurable privacy contact and date (routed through GitHub Issues)
+  privacyContactEmail: null,
   privacyLastUpdated: 'September 2026',
 
   // Real measured Graphit benchmarks

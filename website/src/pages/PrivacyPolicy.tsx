@@ -203,13 +203,15 @@ export const PrivacyPolicy: React.FC = () => {
               {siteConfig.githubIssuesUrl}
             </a>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-            <Mail size={16} color="var(--accent-cyan)" />
-            <span>Privacy Contact: </span>
-            <code style={{ fontFamily: 'var(--font-mono)', background: 'var(--bg-tertiary)', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>
-              {siteConfig.privacyContactEmail}
-            </code>
-          </div>
+          {siteConfig.privacyContactEmail && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+              <Mail size={16} color="var(--accent-cyan)" />
+              <span>Privacy Contact: </span>
+              <code style={{ fontFamily: 'var(--font-mono)', background: 'var(--bg-tertiary)', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>
+                {siteConfig.privacyContactEmail}
+              </code>
+            </div>
+          )}
         </div>
 
         {/* Mandatory Footer Disclaimer */}

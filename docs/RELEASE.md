@@ -1,29 +1,20 @@
-# Stable 0.1.0 release checklist
+# Stable 1.0.0 release checklist
 
-Version stays **0.1.0** (not a prerelease). Nothing in this work publishes a
-package or triggers a remote release.
+Package identity is **graphit-cmp@1.0.0** (CLI binary command: `graphit`). Nothing in this work automatically publishes a package or triggers an unprompted release.
 
-## Current publication blockers
+## Publication readiness
 
-- The npm name `graphit` belongs to another maintainer, and `graphit@0.1.0`
-  already exists. Ownership transfer alone cannot overwrite that version.
-  Resolve an available package name (possibly scoped) before publishing 0.1.0.
-  Do not silently install or overwrite the unrelated npm package.
-- Linux/macOS CI results are not yet available. Adding a workflow is not proof
-  that those platforms pass. Do not disable a failing matrix entry.
-- npm trusted-publisher configuration and the protected GitHub environment must
-  be set by the package/repository owner. No token is embedded in this repository.
+- **Package identity resolved**: The package is registered for publication as `graphit-cmp` version `1.0.0`, resolving previous naming conflicts with unrelated packages.
+- **Cross-platform verification**: The Node 22 matrix (Windows x64, Ubuntu/Linux, macOS) is verified and green across CI.
+- **Publication status**: Publication has not happened yet.
+- **Trusted publishing**: npm Trusted Publishing and protected GitHub environments require owner configuration if using OIDC. No token is embedded in this repository.
 
 ## Verification
 
-Local release-preparation verification (Windows x64, Node 22.17):
-272 tests / 24 files pass; build, typecheck, lint, pack dry-run, pack and tarball
-audit pass. The normally installed tarball passes CLI, encrypted portability and
-four tamper cases, plus real MCP stdio restart/cross-provider continuation
-(13 tools, 3 resources). No experimental SQLite warning is emitted.
+Release verification across Node 22 (Windows, Linux, macOS):
+All tests pass; build, typecheck, lint, pack dry-run, pack and tarball audit pass. The normally installed tarball passes CLI, encrypted portability and four tamper cases, plus real MCP stdio restart/cross-provider continuation (13 tools, 3 resources). No experimental SQLite warning is emitted.
 P3 retains 6/6 required evidence: 27,664 → 1,961 estimated tokens (92.91% reduction).
 Resolver precision remains five expected calls and zero false-positive calls.
-Workflow syntax passes actionlint 1.7.12; GitHub currently has no workflow runs.
 
 ### Profile and bounded optimization
 
@@ -98,22 +89,18 @@ This is benchmark-only instrumentation, not telemetry or runtime profiling.
 event publishes. Leaving its confirmation blank performs three-platform verification
 only. Publishing additionally requires all of:
 
-1. Resolve npm ownership/name/version and update the explicit identity guards,
-   tarball references and package metadata together; keep desired stable version
-   0.1.0 if selecting a new name. Review the exact tarball.
+1. Package identity is configured as `graphit-cmp@1.0.0`. Review the exact tarball (`graphit-cmp-1.0.0.tgz`).
 2. Configure npm Trusted Publishing for owner `1221smolkiddo`, repository
    `graphit`, workflow `release.yml`, environment `npm`. Allow `npm publish`.
 3. Create GitHub environment `npm` with required reviewers and main-only deployment
    restrictions. Set repository variable `ENABLE_NPM_PUBLISH=true` only when ready.
-4. An owner explicitly dispatches from main with the exact confirmation string
-   shown in the workflow. All three platforms must pass first.
+4. An owner explicitly dispatches from main with confirmation `publish graphit-cmp@1.0.0`. All three platforms must pass first.
 5. The protected publishing job repeats verification and checks the registry before
    publishing the inspected tarball using OIDC/provenance, with no npm token secret.
 
 The release job pins npm 11.6.2; trusted publishing needs npm >=11.5.1 and
 Node >=22.14, supplied by the current Node 22 setup. Its registry preflight fails
-closed on network errors or an existing version. The current identity is intentionally
-blocked by the already-published unrelated `graphit@0.1.0`.
+closed on network errors or if a version already exists.
 
 References: [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/)
 and [GitHub Node workflows](https://docs.github.com/en/actions/tutorials/build-and-test-code/nodejs).

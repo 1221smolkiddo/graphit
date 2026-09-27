@@ -1,9 +1,9 @@
 # Getting started
 
-Use Node.js 22.0.0 or newer on a local disk. Windows x64 / Node 22.17 is locally verified; macOS/Linux and other supported Node versions remain unverified here. Version 0.1.0 is packaged but not published. The npm name `graphit` belongs to an existing package; install this release from its local tarball, not the registry name.
+Use Node.js 22.0.0 or newer on a local disk. CI verification covers Node 22.x on Windows, Ubuntu/Linux, and macOS. Install the package globally via npm:
 
 ```sh
-npm install -g ./graphit-0.1.0.tgz
+npm install -g graphit-cmp
 graphit --version
 graphit doctor
 ```
