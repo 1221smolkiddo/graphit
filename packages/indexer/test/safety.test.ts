@@ -62,7 +62,7 @@ describe('fail-closed indexing and source integrity', () => {
 
   it('rejects nonexistent blob references and rolls back events and blob inserts together', async () => {
     const f = await fixture(); const index_run_id = randomUUID();
-    f.store.withProjectTransaction(f.id, (tx) => tx.append({ event_type: 'code.index.started', payload: { index_run_id, root_path: f.root, started_at: new Date().toISOString() } }));
+    f.store.withProjectTransaction(f.id, (tx) => tx.append({ event_type: 'code.index.started', payload: { index_run_id, root_path: tx.getState().project!.root_path, started_at: new Date().toISOString() } }));
     const before = f.store.readEvents(f.id); const bytes = Buffer.from('unused source');
     expect(() => f.store.withProjectTransaction(f.id, (tx) => {
       tx.putSourceBlob(bytes);
@@ -90,7 +90,7 @@ describe('fail-closed indexing and source integrity', () => {
 
   it('requires explicit recovery of an interrupted run and never labels it successful', async () => {
     const f = await fixture(); const index_run_id = randomUUID();
-    f.store.withProjectTransaction(f.id, (tx) => tx.append({ event_type: 'code.index.started', payload: { index_run_id, root_path: f.root, started_at: new Date().toISOString() } }));
+    f.store.withProjectTransaction(f.id, (tx) => tx.append({ event_type: 'code.index.started', payload: { index_run_id, root_path: tx.getState().project!.root_path, started_at: new Date().toISOString() } }));
     expect(f.graph.stats(f.id).last_index_status).toBe('running');
     expect(f.graph.getRuns(f.id)[0]!.completed_at).toBeNull();
     expect(() => f.indexer.index(f.id, f.root)).toThrow('unfinished');
