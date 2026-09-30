@@ -1,12 +1,12 @@
-# Stable 1.0.0 release checklist
+# Stable 1.0.1 release checklist
 
-Package identity is **graphit-cmp@1.0.0** (CLI binary command: `graphit`). Nothing in this work automatically publishes a package or triggers an unprompted release.
+Package identity for this release is **graphit-cmp@1.0.1** (CLI binary command: `graphit`). Version 1.0.0 was published previously; npm versions cannot be replaced.
 
-## Publication readiness
+## Release status
 
-- **Package identity resolved**: The package is registered for publication as `graphit-cmp` version `1.0.0`, resolving previous naming conflicts with unrelated packages.
+- **Package identity resolved**: This release uses `graphit-cmp@1.0.1`, retaining the `graphit` command.
 - **Cross-platform verification**: The Node 22 matrix (Windows x64, Ubuntu/Linux, macOS) is verified and green across CI.
-- **Publication status**: Publication has not happened yet.
+- **Previous publication**: `graphit-cmp@1.0.0` was published on npm on 2026-09-30. The revised README is included in the new `1.0.1` tarball.
 - **Trusted publishing**: npm Trusted Publishing and protected GitHub environments require owner configuration if using OIDC. No token is embedded in this repository.
 
 ## Verification
@@ -83,18 +83,18 @@ Set `GRAPHIT_PROFILE=1` when running `scripts/stress-p6c.mjs` to record SQL
 counts/timings per phase and CPU self-time samples for unchanged indexing.
 This is benchmark-only instrumentation, not telemetry or runtime profiling.
 
-## Manual publication gate
+## Manual publication gate for 1.0.1
 
 `.github/workflows/release.yml` has **only workflow_dispatch**; no push/tag/release
 event publishes. Leaving its confirmation blank performs three-platform verification
 only. Publishing additionally requires all of:
 
-1. Package identity is configured as `graphit-cmp@1.0.0`. Review the exact tarball (`graphit-cmp-1.0.0.tgz`).
+1. Verify `graphit-cmp@1.0.1` is not already published and review the freshly generated `graphit-cmp-1.0.1.tgz` tarball.
 2. Configure npm Trusted Publishing for owner `1221smolkiddo`, repository
    `graphit`, workflow `release.yml`, environment `npm`. Allow `npm publish`.
 3. Create GitHub environment `npm` with required reviewers and main-only deployment
    restrictions. Set repository variable `ENABLE_NPM_PUBLISH=true` only when ready.
-4. An owner explicitly dispatches from main with confirmation `publish graphit-cmp@1.0.0`. All three platforms must pass first.
+4. An owner explicitly dispatches from main with confirmation `publish graphit-cmp@1.0.1`. All three platforms must pass first.
 5. The protected publishing job repeats verification and checks the registry before
    publishing the inspected tarball using OIDC/provenance, with no npm token secret.
 

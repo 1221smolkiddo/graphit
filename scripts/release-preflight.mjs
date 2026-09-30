@@ -6,7 +6,7 @@ import console from 'node:console';
 
 const metadata = JSON.parse(readFileSync('package.json', 'utf8'));
 assert.equal(metadata.name, 'graphit-cmp');
-assert.equal(metadata.version, '1.0.0');
+assert.equal(metadata.version, '1.0.1');
 assert.equal(metadata.repository?.url, 'git+https://github.com/1221smolkiddo/graphit.git');
 assert.equal(process.env.GITHUB_REPOSITORY, '1221smolkiddo/graphit');
 assert.equal(process.env.GITHUB_REF, 'refs/heads/main');
@@ -25,5 +25,5 @@ try {
   }
 }
 assert.ok(!(Array.isArray(versions) ? versions : [versions]).includes(metadata.version),
-  'graphit-cmp@1.0.0 already exists on npm. Resolve the package name/version before publishing.');
+  'graphit-cmp@1.0.1 already exists on npm. Resolve the package name/version before publishing.');
 console.log('Release identity and registry preflight passed.');

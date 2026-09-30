@@ -1,6 +1,6 @@
 # Privacy and preservation
 
-Graphit 1.0.0 is local-first with no telemetry by default. It does not send indexed
+Graphit 1.0.1 is local-first with no telemetry by default. It does not send indexed
 code or recorded memory to a hosted service. Protect the **unencrypted live SQLite
 database**, WAL/SHM and checkout using OS full-disk encryption (for example BitLocker,
 FileVault or LUKS), account security and restrictive filesystem permissions.

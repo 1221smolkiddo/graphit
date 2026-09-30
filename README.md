@@ -1,39 +1,41 @@
 # Graphit
 
-Graphit is local project memory and code intelligence for coding agents. It preserves immutable events and source evidence, then derives a code graph, durable memory, provider-neutral handoff and token-budgeted context. Version **1.0.0**, through P6C.
+![Graphit logo](https://raw.githubusercontent.com/1221smolkiddo/graphit/main/website/public/logo-transparent.png)
 
-P6C stress evidence: 1,000 deterministic files, 22,000 symbols and 80,000 edges.
-A measured duplicate-edge fix reduced graph assembly from 56.09s to 1.14s;
-initial / unchanged / one-file indexing changed from 362.06 / 138.36 / 123.65s
-to 231.30 / 15.46 / 18.26s on Windows x64 / Node 22.17.
-These are single local runs, not SLAs: replay remains costly and peak RSS was
-about 1.47 GB. Full JSON measurements and reproduction scripts are in
-[benchmarks](benchmarks) and [architecture](docs/ARCHITECTURE.md).
+Persistent project memory and source-backed code intelligence for AI coding agents.
 
-## Install
+## What is Graphit?
 
-Automated CI verifies Graphit across Node 22 on Windows, Ubuntu/Linux, and macOS with manual, protected OIDC publishing workflows. See [release checklist](docs/RELEASE.md).
+Graphit is a local CLI and MCP server that helps coding agents resume work with project facts and source evidence. It indexes a repository, stores explicitly recorded project events, and derives memory, code, and search views from that history. The npm package is `graphit-cmp`; the executable is `graphit`.
 
-Graphit is local-first and sends no telemetry by default. The live SQLite project
-database (including WAL/SHM) is **not encrypted at rest** in 1.0.0. Use OS disk
-encryption and filesystem permissions to protect it. Optional encrypted exports
-use AES-256-GCM plus scrypt; they do not encrypt the live database.
+## Why Graphit?
 
-Requires Node.js **22.0.0 or newer** and a local filesystem suitable for SQLite WAL. The package engine, CLI/storage checks and doctor use the same policy. Git is optional for commit metadata.
+Agents lose context between sessions or providers. Graphit keeps goals, tasks, decisions, and results tied to their source events. Its context compiler selects relevant evidence within a requested token budget, so the next agent can continue without replaying an entire conversation or trusting an unverified summary. Graphit does not automatically capture private provider conversations.
 
-Install globally from npm:
+## Key features
+
+- **Persistent project memory:** Promote goals, tasks, decisions, constraints, blockers, questions, actions, results, and artifacts with event provenance. Supersession retains history.
+- **Code intelligence:** Incrementally index TypeScript, TSX, JavaScript, JSX, and Python. Find symbols, imports, callers, callees, and exact spans backed by preserved source blobs.
+- **Evidence-preserving retrieval:** Combine memory and code candidates with FTS5/BM25, reciprocal-rank fusion, bounded graph traversal, and redundancy control. Results retain paths and source references.
+- **Token-aware context:** Compile a deterministic evidence packet against an estimated token budget; report when required evidence cannot fit.
+- **Provider-neutral handoff:** Resume from the same project events and memory through another agent or provider.
+- **MCP integration:** Serve project context, memory, and source evidence over stdio, with tools for explicit recording and promotion.
+- **Portable encrypted exports:** Export checksummed project archives, optionally encrypted with AES-256-GCM; imports validate evidence and rebuild derived indexes.
+
+## Installation
+
+Install with Node.js 22 or newer on a local filesystem suitable for SQLite WAL:
 
 ```sh
 npm install -g graphit-cmp
 graphit --version
-graphit --help
 ```
 
-No private workspace packages, provider accounts or API keys are needed. From this source checkout: `npm ci`, `npm run build`, then `node packages/cli/dist/index.js --help`.
+CI verifies Node 22 on Windows, Ubuntu/Linux, and macOS. Other Node versions permitted by the package engine have not received the same platform verification.
 
-## Quick start
+## Quick Start
 
-Run these in your repository:
+Run these commands in a repository:
 
 ```sh
 graphit init --name "My project"
@@ -45,56 +47,53 @@ graphit handoff
 graphit doctor --json
 ```
 
-### Code graph
+Indexing runs when you request it; run `graphit index .` again after edits. A handoff is empty until you explicitly add durable memory. See [Getting started](https://github.com/1221smolkiddo/graphit/blob/main/docs/GETTING_STARTED.md) and the [CLI reference](https://github.com/1221smolkiddo/graphit/blob/main/docs/CLI.md).
 
-Tree-sitter indexes TypeScript, TSX, JavaScript, JSX and Python incrementally. Symbol identities, relationships and exact byte spans refer to immutable SHA-256 source blobs. `graphit code symbol <name>` finds symbols; `code callers`, `code callees` and `code source <id>` inspect preserved evidence rather than reading arbitrary live files.
+## MCP integration and configuration
 
-### Project memory and handoff
+Run `graphit mcp config --json` in an initialized project to print a client configuration. For a stdio MCP host that accepts `mcpServers`:
 
-Explicitly record evidence with MCP `graphit_record_event`, then promote a goal, task, decision, constraint, blocker, question, action, result or artifact with `graphit_add_memory`. Every memory retains source event IDs. CLI `graphit memory add --type task --content "Verify login" --source-event <id>` uses the same promotion API. Supersession preserves history.
+```json
+{
+  "mcpServers": {
+    "graphit": {
+      "command": "graphit",
+      "args": ["mcp", "--project", "/path/to/your/project"]
+    }
+  }
+}
+```
 
-`graphit handoff` returns current memory and provenance. A different provider can start later and continue using those same events; no provider-specific chat schema is canonical.
+The server exposes 13 tools and three resources. `graphit_record_event` records validated evidence; `graphit_add_memory` promotes it; `graphit_handoff` returns current memory with provenance. Hosts that cannot find the global command can use the installed package's absolute Node entrypoint. See [MCP setup](https://github.com/1221smolkiddo/graphit/blob/main/docs/MCP.md). The MCP host's model-provider data handling is separate from Graphit.
 
-### Token-aware context
+## How Graphit works
 
-Exact matching, FTS5/BM25, reciprocal-rank fusion and bounded Personalized PageRank retrieve evidence. Deterministic MMR reduces duplication and packs a canonical packet into the requested estimated-token budget. Missing required evidence is explicit; CLI context exits **2** when the budget is insufficient. The estimator is UTF-8 bytes/4, not a model-specific tokenizer.
+Graphit appends validated events and source blobs to a local SQLite database in `.graphit/`. Project sequences and writes are transactional; SQLite uses WAL. Memory, code, and search indexes are derived views that can be rebuilt from preserved evidence. Code indexing records source bytes and symbol relationships; retrieval ranks candidates; the context compiler packs a canonical packet for the requested budget. Handoff reads durable memory and its provenance.
 
-The refresh-work fixture measured **27,652 candidate tokens → 1,960 selected**, a **92.91% reduction**, preserving **6/6 required evidence items** at a 2,000-token budget. Small run-to-run differences arise from identities/paths and packing tie-breaks; these are fixture results, not universal performance guarantees.
+The token estimator uses `ceil(UTF-8 bytes / 4)`, not a provider tokenizer or a guarantee about billed tokens. See [Architecture](https://github.com/1221smolkiddo/graphit/blob/main/docs/ARCHITECTURE.md), [Memory](https://github.com/1221smolkiddo/graphit/blob/main/docs/MEMORY.md), and [Retrieval](https://github.com/1221smolkiddo/graphit/blob/main/docs/RETRIEVAL.md).
 
-### MCP
+## Benchmarks
 
-`graphit mcp --project <project-directory>` serves 13 tools and three resources over stdio. `graphit mcp config --json` prints a local client configuration; `graphit mcp doctor` checks readiness. Use the direct binary or Node entrypoint in MCP configuration, not an npm script that prints banners to stdout. See [MCP setup](docs/MCP.md).
+In the [recorded retrieval fixture](https://github.com/1221smolkiddo/graphit/blob/main/benchmarks/p3-benchmark-results.json), the median 2,000-token-budget run selected **1,960 estimated tokens** from **27,660 candidate tokens** (a **92.91% reduction**) and retained **6/6 required evidence items**. The fixture uses synthetic distractors; this measures context selection, not model-answer quality or universal savings.
 
-### Privacy and data preservation
+In a separate [1,000-file synthetic indexing run](https://github.com/1221smolkiddo/graphit/blob/main/benchmarks/release-performance.json) on Windows x64 / Node 22.17, unchanged indexing went from **19.32s to 8.84s** (54.2% faster). Initial and one-file indexing were slower in that instrumented comparison. These are single local runs, not cross-platform latency guarantees.
 
-Graphit does **not** automatically scrape full private Codex/Claude chats. It captures data explicitly recorded through Graphit CLI/MCP, plus files you deliberately index. It does not call LLMs or cloud services. `.graphit/` contains private project evidence and should not be committed.
+## Privacy and security
 
-Source events and blobs are append-only; memory, code and search indexes are reconstructable. `graphit export snapshot.graphit` makes a checksummed plaintext archive; add `--encrypt` for AES-256-GCM encryption with a no-echo passphrase prompt. `graphit import snapshot.graphit` auto-detects either format, authenticates encrypted input, then rebuilds derived indexes in a clean directory. For automation, use `--passphrase-env VARIABLE_NAME`, never a secret value in argv. Live databases remain unencrypted. See [data preservation](docs/DATA_PRESERVATION.md) and [portability](docs/PORTABILITY.md).
+Graphit does not send product telemetry by default or automatically scrape private agent chats. It records data explicitly supplied through Graphit and source files you choose to index. `.graphit/` can contain proprietary source, absolute paths, and recorded commands or conversations; keep it out of version control and protect it with filesystem permissions.
+
+The live SQLite database, including WAL/SHM files, is **not encrypted at rest**. `graphit export snapshot.graphit --encrypt` creates an authenticated encrypted archive; the default export is plaintext. Import into a clean directory with `graphit import snapshot.graphit`. Hashes detect corruption but do not protect against an attacker who can replace and re-sign local data. See [Data preservation](https://github.com/1221smolkiddo/graphit/blob/main/docs/DATA_PRESERVATION.md) and [Portability](https://github.com/1221smolkiddo/graphit/blob/main/docs/PORTABILITY.md).
 
 ## Documentation
 
-- [Getting started](docs/GETTING_STARTED.md) and [CLI reference](docs/CLI.md)
-- [Architecture](docs/ARCHITECTURE.md), [memory](docs/MEMORY.md), [retrieval](docs/RETRIEVAL.md)
-- [MCP](docs/MCP.md), [portability](docs/PORTABILITY.md), [data preservation](docs/DATA_PRESERVATION.md)
+- [Getting started](https://github.com/1221smolkiddo/graphit/blob/main/docs/GETTING_STARTED.md), [CLI reference](https://github.com/1221smolkiddo/graphit/blob/main/docs/CLI.md), and [MCP setup](https://github.com/1221smolkiddo/graphit/blob/main/docs/MCP.md)
+- [Architecture](https://github.com/1221smolkiddo/graphit/blob/main/docs/ARCHITECTURE.md), [Project memory](https://github.com/1221smolkiddo/graphit/blob/main/docs/MEMORY.md), and [Retrieval](https://github.com/1221smolkiddo/graphit/blob/main/docs/RETRIEVAL.md)
+- [Portability](https://github.com/1221smolkiddo/graphit/blob/main/docs/PORTABILITY.md), [Data preservation](https://github.com/1221smolkiddo/graphit/blob/main/docs/DATA_PRESERVATION.md), and [Benchmarks](https://github.com/1221smolkiddo/graphit/tree/main/benchmarks)
 
-## Verification and limitations
+## Contributing
 
-```sh
-npm test
-npm run typecheck
-npm run lint
-npm run build
-npm pack --dry-run
-npm pack
-npm run verify:packed -- ./graphit-cmp-1.0.0.tgz
-npm run mcp:smoke
-node examples/context-demo.mjs
-```
+Open an [issue](https://github.com/1221smolkiddo/graphit/issues) to discuss bugs or changes. From a source checkout, run `npm ci`, then `npm test`, `npm run typecheck`, `npm run lint`, and `npm run build` before proposing a change. The [release checklist](https://github.com/1221smolkiddo/graphit/blob/main/docs/RELEASE.md) describes package verification.
 
-The packed-install check runs outside the workspace and exercises real stdio clients, full provider restart, preserved evidence and export/import. Automated CI verifies the Node 22 matrix across Windows, Ubuntu/Linux, and macOS. SQLite uses the stable native `better-sqlite3` driver, shipping platform-specific native prebuilds. Existing project databases retain their schema, migration ledger and canonical evidence.
+## License
 
-Before upgrading, export a backup or stop all writers and preserve the entire `.graphit` directory, including WAL/SHM files. Existing P0–P6A schemas use normal checksummed migrations without canonical conversion. Inconsistent ledgers, missing schema objects and physical corruption fail closed.
-
-`graphit doctor --json` diagnoses without repair. For stale derived rows, stop other writers, back up, then run `graphit repair --json` and doctor again. Repair atomically rebuilds project/session/checkpoint, memory, code and retrieval projections for all projects in the local database; events/blobs must remain unchanged. Interrupted indexing requires `graphit index . --rebuild`. Canonical damage or missing schema tables requires recovery from a verified backup into a new directory, never deleting the original. See [recovery details](docs/DATA_PRESERVATION.md).
-
-Synchronous replay and startup integrity checking favor correctness over very large histories. Dynamic calls and ambiguous imports may remain unresolved; only provable import/export alias chains are resolved. Hashes detect corruption, not malicious re-signing by someone with full filesystem access. Imports are limited to 256 MiB uncompressed (257 MiB compressed); no archive merge or live-database encryption. No VS Code extension, UI, website, cloud sync, embeddings, LLM summaries or private transcript scraping.
+MIT. See [LICENSE](https://github.com/1221smolkiddo/graphit/blob/main/LICENSE).

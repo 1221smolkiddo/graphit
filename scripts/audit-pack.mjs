@@ -6,7 +6,7 @@ import { resolve } from 'node:path';
 import console from 'node:console';
 import process from 'node:process';
 
-const archive = realpathSync(resolve(process.argv[2] ?? 'graphit-cmp-1.0.0.tgz'));
+const archive = realpathSync(resolve(process.argv[2] ?? 'graphit-cmp-1.0.1.tgz'));
 const entries = execFileSync('tar', ['-tzf', archive], { encoding: 'utf8' }).trim().split(/\r?\n/);
 const docs = new Set(['GETTING_STARTED', 'CLI', 'MCP', 'ARCHITECTURE', 'MEMORY', 'RETRIEVAL', 'PORTABILITY', 'DATA_PRESERVATION', 'RELEASE'].map((name) => `package/docs/${name}.md`));
 const forbidden = [
@@ -28,6 +28,6 @@ for (const path of entries) {
 }
 for (const required of ['package/dist/cli/index.js', 'package/dist/mcp/index.js', 'package/dist/indexer/parser.js',
   'package/dist/storage/portable.js', 'package/dist/storage/migrations/004_retrieval.sql', ...docs]) assert.ok(entries.includes(required), `Missing ${required}`);
-console.log(JSON.stringify({ archive: 'graphit-cmp-1.0.0.tgz', files: entries.length, packed_bytes: statSync(archive).size,
+console.log(JSON.stringify({ archive: 'graphit-cmp-1.0.1.tgz', files: entries.length, packed_bytes: statSync(archive).size,
   unpacked_bytes: bytes, allowlist: 'passed', credential_and_machine_path_patterns: 'passed',
   databases_transcripts_tests_fixtures_source_maps: 'excluded', runtime_imports: 'passed', publication_performed: false }, null, 2));

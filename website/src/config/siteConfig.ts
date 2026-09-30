@@ -82,7 +82,7 @@ export const siteConfig: SiteConfig = {
   installCommand: 'npm install -g graphit-cmp',
   githubUrl: 'https://github.com/1221smolkiddo/graphit',
   githubIssuesUrl: 'https://github.com/1221smolkiddo/graphit/issues',
-  version: '1.0.0',
+  version: '1.0.1',
   license: 'MIT',
 
   // Configurable privacy contact and date (routed through GitHub Issues)
